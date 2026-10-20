@@ -6,9 +6,22 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { load, type Store } from '@tauri-apps/plugin-store'
 import { randomDeviceId53 } from '@/api/headers'
+import type { LaunchArgOptions } from '@/api/auth-ticket'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 export type NoteRefreshInterval = 'off' | '30m' | '60m'
+
+const defaultLaunchOptions: LaunchArgOptions = {
+  fullscreen: false,
+  borderless: false,
+  exclusive: false,
+  widthEnabled: false,
+  width: 1920,
+  heightEnabled: false,
+  height: 1080,
+  monitorEnabled: false,
+  monitor: 1,
+}
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<ThemeMode>('auto')
@@ -17,6 +30,10 @@ export const useSettingsStore = defineStore('settings', () => {
   const hypDeviceId = ref('')
   /** 便笺自动刷新间隔(默认关闭,仅应用运行期间有效) */
   const noteRefreshInterval = ref<NoteRefreshInterval>('off')
+  /** 启动参数开关(默认值对齐 Snap.Hutao:窗口化) */
+  const launchOptions = ref<LaunchArgOptions>({ ...defaultLaunchOptions })
+  /** 已校验的游戏 exe 路径(空 = 未设置) */
+  const gameExe = ref('')
   const isDark = ref(false)
   let store: Store | null = null
 
@@ -43,6 +60,8 @@ export const useSettingsStore = defineStore('settings', () => {
         await store.set('hypDeviceId', hypDeviceId.value)
       }
       noteRefreshInterval.value = (await store.get<NoteRefreshInterval>('noteRefreshInterval')) ?? 'off'
+      launchOptions.value = { ...defaultLaunchOptions, ...(await store.get<LaunchArgOptions>('launchOptions')) }
+      gameExe.value = (await store.get<string>('gameExe')) ?? ''
     } catch {
       store = null
     }
@@ -63,5 +82,28 @@ export const useSettingsStore = defineStore('settings', () => {
     await store?.set('noteRefreshInterval', mode)
   }
 
-  return { theme, deviceId, hypDeviceId, noteRefreshInterval, isDark, init, setTheme, setNoteRefreshInterval }
+  async function setLaunchOptions(patch: Partial<LaunchArgOptions>): Promise<void> {
+    launchOptions.value = { ...launchOptions.value, ...patch }
+    await store?.set('launchOptions', launchOptions.value)
+  }
+
+  async function setGameExe(exe: string): Promise<void> {
+    gameExe.value = exe
+    await store?.set('gameExe', exe)
+  }
+
+  return {
+    theme,
+    deviceId,
+    hypDeviceId,
+    noteRefreshInterval,
+    launchOptions,
+    gameExe,
+    isDark,
+    init,
+    setTheme,
+    setNoteRefreshInterval,
+    setLaunchOptions,
+    setGameExe,
+  }
 })
