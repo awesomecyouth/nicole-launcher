@@ -38,7 +38,7 @@ export async function createAuthTicket(caller: TicketCaller): Promise<string> {
         url: CN_VERIFIER,
         headers: withDeviceFp(
           hypHeaders(false, undefined, { Cookie: cookieHeader(caller.cred, 'LToken') }),
-          caller.fingerprint,
+          caller.fingerprint
         ),
         data: { game_biz: 'hk4e_cn', mid: caller.mid, stoken: caller.stoken, uid: Number(caller.aid) },
       })
