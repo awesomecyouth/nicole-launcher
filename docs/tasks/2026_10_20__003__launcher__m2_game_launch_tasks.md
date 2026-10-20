@@ -23,6 +23,13 @@
 - 启动不提权(std::process 直接 spawn);若 Windows 实测因 UAC 失败,再评估是否改 ShellExecute runas。
 - 换票:国服 `createAuthTicketByGameBiz`(LToken cookie + fp,body uid 为数字);国际服 `createAuthTicketBySToken`(device_id 头,无 Cookie);均 HYP UA、无 DS,与参考实现一致。
 
+## Windows 首测反馈与修复(2026-10-20)
+
+- **账号添加偶发失败**(error sending request,重试即成功;用户环境直连无代理):网络层对 reqwest 连接类错误自动重试一次(500ms 间隔),并补 10s connectTimeout(插件默认无连接超时;axios timeout 在自定义 adapter 下无效)。写入 `src/api/tauri-fetch.ts`。
+- **启动报 os error 740(需要提升)**:游戏 exe manifest 要求管理员,CreateProcess 拒绝。Windows 分支改用 ShellExecuteW `runas` verb(手写 FFI 零依赖,传工作目录,UAC 弹窗授权),与参考实现一致;macOS 分支维持 std::process。已用 `cargo check --target x86_64-pc-windows-gnu` 交叉验证(edition 2024 需 `unsafe extern`)。
+- **新增运行日志**:`append_log` command 写入系统日志目录 `nicole.log`(Windows 在 `%LOCALAPPDATA%\app.cyouth.nicole\logs\`);红条错误与网络重试自动记录,后续 Windows 排障直接看该文件。
+- 首测通过项:扫码与 Cookie 添加账号(重试后)、删除账号、便笺/签到数据正常。待复测:一键启动(UAC 弹窗后游戏拉起 + 免登)、config.ini 写回。
+
 ## 实现要点
 
 ### M2-T1 路径发现(src-tauri/src/game_path.rs)
