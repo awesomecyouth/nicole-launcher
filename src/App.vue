@@ -4,13 +4,15 @@ import MainLayout from '@/layouts/MainLayout.vue'
 
 <template>
   <main class="h-dvh w-dvw">
-    <MainLayout>
-      <RouterView v-slot="{ Component, route }">
+    <RouterView v-slot="{ Component, route }">
+      <!-- 裸页(极验验证子窗口等):无布局直接渲染 -->
+      <component :is="Component" v-if="route.meta.bare" :key="route.fullPath" />
+      <MainLayout v-else>
         <Transition name="slide" mode="out-in">
           <component :is="Component" :key="route.fullPath" />
         </Transition>
-      </RouterView>
-    </MainLayout>
+      </MainLayout>
+    </RouterView>
   </main>
 </template>
 

@@ -23,6 +23,13 @@ const routes = [
     path: '/settings',
     component: () => import('@/pages/settings/index.vue'),
   },
+  {
+    name: 'geetest',
+    path: '/geetest',
+    // 裸页(无侧边栏布局),供验证子窗口加载
+    meta: { bare: true },
+    component: () => import('@/pages/geetest/index.vue'),
+  },
 ]
 
 const router = createRouter({
