@@ -20,7 +20,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
-tauri-plugin-http = "2"
+# unsafe-headers:允许经 IPC 传递 Cookie/Referer 等 fetch 规范禁设头——
+# 米哈游 API 鉴权基于 Cookie 头,默认过滤会导致所有需鉴权的接口 -100 未登录
+tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
 tauri-plugin-store = "2"
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
