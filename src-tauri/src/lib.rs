@@ -40,6 +40,21 @@ fn is_game_running() -> bool {
     launch::is_running()
 }
 
+/// 追加一行日志到系统日志目录(时间戳由前端生成,保持本地时区可读)
+#[tauri::command]
+fn append_log(app: tauri::AppHandle, line: String) -> Result<(), String> {
+    use tauri::Manager;
+    let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(dir.join("nicole.log"))
+        .map_err(|e| e.to_string())?;
+    use std::io::Write;
+    file.write_all(format!("{line}\n").as_bytes()).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -53,7 +68,8 @@ pub fn run() {
             inspect_game_path,
             set_game_channels,
             launch_game,
-            is_game_running
+            is_game_running,
+            append_log
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -5,6 +5,7 @@ import router from './router'
 import { useSettingsStore } from './stores/settings'
 import { useAccountsStore } from './stores/accounts'
 import { useNotesStore } from './stores/notes'
+import { logLine } from './api/logger'
 import './styles/main.css'
 
 const app = createApp(App)
@@ -18,6 +19,9 @@ app.mount('#app')
 void useSettingsStore(pinia).init()
 void useAccountsStore(pinia).init()
 useNotesStore(pinia).setupAutoRefresh()
+
+// 页面错误红条的内容同步写入运行日志(nicole:error 由 index.html 派发)
+window.addEventListener('nicole:error', (e) => logLine(String((e as CustomEvent).detail)))
 
 if (import.meta.env.DEV) {
   import('./api/ds').then(({ dsSelfTest }) => {

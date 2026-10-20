@@ -9,6 +9,7 @@
  * 参考实现: tauri-plugin-http 2.8.3 dist-js/index.js(同一套命令,去掉 Request 构造)
  */
 import { invoke } from '@tauri-apps/api/core'
+import { logLine } from './logger'
 
 export interface RawHttpResponse {
   status: number
@@ -18,8 +19,30 @@ export interface RawHttpResponse {
   bodyText: string
 }
 
-/** 经 Rust reqwest 发起请求,返回完整响应(小体积 JSON 场景,同步读全) */
+/** 连接层瞬时失败的标识(reqwest display),对它自动重试一次 */
+const RETRYABLE = 'error sending request'
+/** 连接超时(ms):插件默认无超时,避免连接挂起导致请求永远 pending */
+const CONNECT_TIMEOUT_MS = 10_000
+
+/** 经 Rust reqwest 发起请求;连接层瞬时失败(Windows 实测偶发)自动重试一次 */
 export async function tauriRawFetch(req: {
+  method: string
+  url: string
+  headers: Record<string, string>
+  body?: string | null
+}): Promise<RawHttpResponse> {
+  try {
+    return await rawFetchOnce(req)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (!msg.includes(RETRYABLE)) throw err
+    logLine(`net retry ${req.method} ${req.url}: ${msg}`)
+    await new Promise((r) => setTimeout(r, 500))
+    return await rawFetchOnce(req)
+  }
+}
+
+async function rawFetchOnce(req: {
   method: string
   url: string
   headers: Record<string, string>
@@ -31,6 +54,7 @@ export async function tauriRawFetch(req: {
       url: req.url,
       headers: Object.entries(req.headers).map(([name, value]) => [name, value]),
       data: req.body != null ? Array.from(new TextEncoder().encode(req.body)) : null,
+      connectTimeout: CONNECT_TIMEOUT_MS,
     },
   })
 

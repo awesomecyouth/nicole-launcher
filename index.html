@@ -23,6 +23,8 @@
           var msg = err && err.stack ? err.name + ': ' + err.message + '\n' + err.stack : String(err)
           box.textContent += (box.textContent ? '\n\n' : '') + msg
           box.scrollTop = box.scrollHeight
+          // 交给应用层写入运行日志(见 src/api/logger.ts)
+          window.dispatchEvent(new CustomEvent('nicole:error', { detail: msg }))
         }
         window.addEventListener('error', function (e) {
           showFatal(e.error || e.message)
