@@ -5,12 +5,15 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { load, type Store } from '@tauri-apps/plugin-store'
+import { randomDeviceId53 } from '@/api/headers'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<ThemeMode>('auto')
   const deviceId = ref('')
+  /** HYP 容器扫码/换票用 device_id(53 位),首启生成后固定 */
+  const hypDeviceId = ref('')
   const isDark = ref(false)
   let store: Store | null = null
 
@@ -31,6 +34,11 @@ export const useSettingsStore = defineStore('settings', () => {
         await store.set('deviceId', id)
       }
       deviceId.value = id
+      hypDeviceId.value = (await store.get<string>('hypDeviceId')) ?? ''
+      if (!hypDeviceId.value) {
+        hypDeviceId.value = randomDeviceId53()
+        await store.set('hypDeviceId', hypDeviceId.value)
+      }
     } catch {
       store = null
     }
@@ -46,5 +54,5 @@ export const useSettingsStore = defineStore('settings', () => {
     await store?.set('theme', mode)
   }
 
-  return { theme, deviceId, isDark, init, setTheme }
+  return { theme, deviceId, hypDeviceId, isDark, init, setTheme }
 })
