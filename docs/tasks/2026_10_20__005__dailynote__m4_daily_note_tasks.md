@@ -2,17 +2,26 @@
 
 > 依赖计划:`docs/plans/2026_10_20__001__phase1__development_plan.md`(§5.5、§6.1、§6.3、§6.4)
 > 前置任务:`docs/tasks/2026_10_20__002__account__m1_account_management_tasks.md`(M1 全部完成,需要当前角色 uid/region 与 cookie_token/ltoken)
-> 总体状态:**未开始**
+> 总体状态:**已完成(2026-10-20,国服真机验收:数值对照米游社 App 一致、倒计时与设置项正常)**
 
 ## 任务清单
 
 | 编号 | 任务 | 状态 |
 |------|------|------|
-| M4-T1 | `api/dailynote.ts`:`index` + `dailyNote` 顺序请求封装(国/国际双实现) | ⬜ 未开始 |
-| M4-T2 | `stores/notes.ts` + 数据模型:字段映射、倒计时本地推进、1034 风控态 | ⬜ 未开始 |
-| M4-T3 | 便笺卡片 UI:树脂/宝钱/委托/周本/派遣/质变仪六区块,多角色支持 | ⬜ 未开始 |
-| M4-T4 | 自动刷新:设置项(关闭/30min/60min,默认关)+ 前端定时器 | ⬜ 未开始 |
-| M4-T5 | Dashboard 集成与概览(树脂进度最醒目位) | ⬜ 未开始 |
+| M4-T1 | `api/dailynote.ts`:`index` + `dailyNote` 顺序请求封装(国/国际双实现) | ✅ 已完成 |
+| M4-T2 | `stores/notes.ts` + 数据模型:字段映射、倒计时本地推进、1034 风控态 | ✅ 已完成 |
+| M4-T3 | 便笺卡片 UI:树脂/宝钱/委托/周本/派遣/质变仪六区块,多角色支持 | ✅ 已完成(真机验收;多角色经 accounts 角色切换器联动) |
+| M4-T4 | 自动刷新:设置项(关闭/30min/60min,默认关)+ 前端定时器 | ✅ 已完成(真机验收持久化) |
+| M4-T5 | Dashboard 集成与概览(树脂进度最醒目位) | ✅ 已完成(真机验收) |
+
+## 实施备注(2026-10-20)
+
+- **`x-rpc-tool_verison` 值勘误**:交接文档(004)记为 `v5.0.1-1ys`,Snap.Hutao 1.16.5 源码实际为 `v5.0.1-ys`,实现取源码值并真机验证通过。
+- **DS 空 body 默认值按盐区分**(本次修正 ds.ts):PROD → `"{}"`,其余盐(X4/OSX4 的 GET)→ 空串,依据 Snap.Hutao DataSignOptions;修正后 PROD 自测向量不受影响。
+- 响应结构:旧平铺字段(current_resin 等)与新版嵌套字段(daily_task、archon_quest_progress、calendar_url)并存,实现优先取平铺字段、daily_task 兜底。
+- transformer.recovery_time 内层键为 PascalCase(Day/Hour/Minute/Second/reached),已按秒折算。
+- 倒计时实现:store 只存 recoveryTime 秒数 + fetchedAt 基准,UI 每分钟本地重渲染,不发请求;刷新失败静默保留旧数据。
+- 国际服路径(OSX4/hoyolab 域)构建完成但未真机验证(无国际服账号)。
 
 ## 实现要点
 
