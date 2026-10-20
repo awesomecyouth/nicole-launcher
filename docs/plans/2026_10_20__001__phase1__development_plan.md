@@ -19,18 +19,23 @@
 
 ## 2. 现状盘点
 
-已有(Tauri 2 + Vue 3.5 + TS + Vite 8 + Tailwind 4 脚手架):
+> 2026-10-20 更新:本项目为 WKWebView 白屏问题弃档后的新代码库重建;旧库保留于同级目录 `nicole-launcher.broken/` 仅作参考,交接资产见 `docs/handover/`。
 
-- 侧边栏布局 `src/layouts/MainLayout.vue`,含 **Logo 随机切换机制(规范第 6.8 条要求务必保留)**
-- 空白页面:dashboard / launcher / settings;路由 `src/router/index.ts`
-- 已安装未接入:pinia、axios;`vue-i18n` 已装(本期不启用,仅保留)
+已有(create-tauri-app 脚手架基线,空壳 `tauri dev` 已验证跑通):
 
-问题与缺口:
+- 迁移入位但未接线的 M0 资产:`src/api/`(constants/ds/headers)、`src/games/`、`src/components/ui/` 四件、`src/styles/theme.css`、`src/assets/nicole/` 六图
 
-- `src/pages/launcher/index.vue:2` 引用未安装的 `@vean/ui`(坏引用,需移除)
-- `tauri-plugin-store`、`tauri-plugin-http`、`tauri-plugin-dialog` 均未安装
-- Rust 端仅有 greet 示例;无游戏路径发现、进程启动能力
-- 无主题色板、无夜间模式;组件层为空
+缺口(重建 M0 时补齐):
+
+- M0 前端依赖与 Rust 插件(http/store/dialog)均未安装,capabilities 未授权
+- `vite.config.ts` 仍读取 `TAURI_DEV_HOST` 环境变量(违反 handover/003 稳定性原则,待去除)
+- 无 Tailwind 接线、无 router/pinia/settings store、无 http.ts;MainLayout(**Logo 随机切换机制,规范第 6.8 条要求务必保留**)与 pages 待从旧库审查式找回
+
+重建决策(2026-10-20 用户确认):
+
+- 旧库代码逐文件审查简化后采用,不原样照搬
+- 错误红条 / dev 看门狗 / 自动 devtools / page_ready 等防护设施**不带入新库**(属事后补救措施且未起效,保持架构简洁)
+- `vue-i18n` 本期不引入,待实际需要多语言时再加
 
 ## 3. 总体架构
 
@@ -335,7 +340,7 @@ uid 首位:1-4 `cn_gf01`、5 `cn_qd01`、6 `os_usa`、7 `os_euro`、8 `os_asia`�
 | Store 明文存凭据 | 与参考实现同级;keyring 加固列为后续任务 |
 | 扫码登录接口变动 | 手动 Cookie 路径永远保留为兜底 |
 
-## 9. 依赖清单(已于 2026-10-20 经用户确认全部引入)
+## 9. 依赖清单(2026-10-20 经用户确认;新库重建时按此引入)
 
 前端(pnpm):
 
