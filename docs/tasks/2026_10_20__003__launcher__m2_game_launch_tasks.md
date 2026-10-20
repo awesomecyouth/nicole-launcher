@@ -2,17 +2,26 @@
 
 > 依赖计划:`docs/plans/2026_10_20__001__phase1__development_plan.md`(§5.3、§6.2、§6.3)
 > 前置任务:`docs/tasks/2026_10_20__002__account__m1_account_management_tasks.md`(M1 全部完成,需要当前账号/角色)
-> 总体状态:**未开始**
+> 总体状态:**代码完成(2026-10-20);mac 上 disabled 态/参数卡已人工确认,Windows 真机验收待用户反馈**
 
 ## 任务清单
 
 | 编号 | 任务 | 状态 |
 |------|------|------|
-| M2-T1 | Rust `detect_game_path`:Windows 扫描 Unity output_log 提取游戏目录 | ⬜ 未开始 |
-| M2-T2 | Rust config.ini 读写:channel/sub_channel 读取、写回(带备份) | ⬜ 未开始 |
-| M2-T3 | Rust `launch_game(exe, args)`:std::process 启动、运行中检测 | ⬜ 未开始 |
-| M2-T4 | `api/auth-ticket.ts` 换票:国服/国际服双实现 + 启动参数拼装 | ⬜ 未开始 |
-| M2-T5 | 启动页 UI:路径状态与手动选择(plugin-dialog)、区服显示、参数开关、启动按钮与状态反馈 | ⬜ 未开始 |
+| M2-T1 | Rust `detect_game_path`:Windows 扫描 Unity output_log 提取游戏目录 | ✅ 已实现(待 Windows 实测) |
+| M2-T2 | Rust config.ini 读写:channel/sub_channel 读取、写回(带备份) | ✅ 已实现(待 Windows 实测) |
+| M2-T3 | Rust `launch_game(exe, args)`:std::process 启动、运行中检测 | ✅ 已实现(待 Windows 实测) |
+| M2-T4 | `api/auth-ticket.ts` 换票:国服/国际服双实现 + 启动参数拼装 | ✅ 已实现(待 Windows 实测) |
+| M2-T5 | 启动页 UI:路径状态与手动选择(plugin-dialog)、区服显示、参数开关、启动按钮与状态反馈 | ✅ 已实现(非 Windows 禁用态已确认) |
+
+## 实施备注(2026-10-20)
+
+- **用户决策**:保留 Snap.Hutao 的命令行参数传入与米游社账号免登票据;**注入类功能完全移除**(FOV/帧率/去雾/Island/提权挂起等一概不实现)。参数集与拼装顺序照 `GameProcessFactory`:`-popupwindow`/`-window-mode exclusive`/`-screen-fullscreen`/`-screen-width`/`-screen-height`/`-monitor`/`login_auth_ticket=`(等号连接)。
+- 非 Windows:路径探测/选择/启动一律 disabled(顶部提示条),启动参数仍可配置并持久化。
+- 区服方案:国服官服 `1/1`、国际服 `1/0`(KnownLaunchSchemes 非兼容主流值);B 服(`PCGameSDK.dll` 存在)不换票不写回,裸启动并提示。
+- Rust 检测:output_log 路径解析为手工引号回溯(不引 regex 依赖);`tasklist`(Win)/`pgrep`(其他)判运行。
+- 启动不提权(std::process 直接 spawn);若 Windows 实测因 UAC 失败,再评估是否改 ShellExecute runas。
+- 换票:国服 `createAuthTicketByGameBiz`(LToken cookie + fp,body uid 为数字);国际服 `createAuthTicketBySToken`(device_id 头,无 Cookie);均 HYP UA、无 DS,与参考实现一致。
 
 ## 实现要点
 
