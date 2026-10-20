@@ -82,7 +82,7 @@ export const useNotesStore = defineStore('notes', () => {
           timer = window.setInterval(() => void load(true), ms)
         }
       },
-      { immediate: true },
+      { immediate: true }
     )
   }
 

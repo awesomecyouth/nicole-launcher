@@ -58,7 +58,10 @@ interface RawNote {
   remain_resin_discount_num: number
   resin_discount_num_limit: number
   expeditions: { avatar_side_icon: string; status: string; remained_time: number }[]
-  transformer?: { obtained: boolean; recovery_time?: { Day: number; Hour: number; Minute: number; Second: number; reached: boolean } }
+  transformer?: {
+    obtained: boolean
+    recovery_time?: { Day: number; Hour: number; Minute: number; Second: number; reached: boolean }
+  }
   /** 新版嵌套字段(与平铺字段并存,平铺缺失时兜底) */
   daily_task?: { total_num: number; finished_num: number; is_extra_task_reward_received: boolean }
 }

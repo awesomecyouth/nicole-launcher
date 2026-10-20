@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { useSettingsStore } from './stores/settings'
 import { useAccountsStore } from './stores/accounts'
+import { useNotesStore } from './stores/notes'
 import './styles/main.css'
 
 const app = createApp(App)
@@ -16,6 +17,7 @@ app.mount('#app')
 // 注意:不要在此替换 window.fetch —— 见 src/api/http.ts 头部说明
 void useSettingsStore(pinia).init()
 void useAccountsStore(pinia).init()
+useNotesStore(pinia).setupAutoRefresh()
 
 if (import.meta.env.DEV) {
   import('./api/ds').then(({ dsSelfTest }) => {
