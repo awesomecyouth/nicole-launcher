@@ -58,7 +58,9 @@
 
 ### 3.2 网络层方案
 
-- 在 Tauri 环境将 `window.fetch` 替换为 `@tauri-apps/plugin-http` 的 `fetch`(main.ts 中一次性挂载),axios 使用 `adapter: "fetch"`(axios ≥1.7)。
+> 2026-10-20 修正:原方案"在 main.ts 全局替换 `window.fetch`"已在 macOS 26 WKWebView 实测引发页面渲染与输入冻结(与旧库白屏未解之谜同类根因),**禁止使用**。现行为:plugin-http 的 fetch 惰性加载,仅经 `env.fetch` 注入 axios,见 `src/api/http.ts`。
+
+- axios 使用 `adapter: "fetch"`(axios ≥1.7);Tauri 环境下业务请求经 `env.fetch` 走 plugin-http(绕 CORS),纯浏览器 dev 回退原生 fetch;`window.fetch` 全局永不改动。
 - `src/api/http.ts` 创建统一实例,拦截器职责:
   1. 请求:按 API 族注入预设头(UA / x-rpc-app_version / client_type / device_id),按需生成 DS 头,按 CookieType 拼接 Cookie 头;
   2. 响应:解包 `{retcode, message, data}`,retcode≠0 抛类型化错误(含 -3501 扫码过期、1034 风控等待验证、-5003 已签到等已知码)。

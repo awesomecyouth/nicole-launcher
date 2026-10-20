@@ -2,8 +2,8 @@
 
 > 依赖计划:`docs/plans/2026_10_20__001__phase1__development_plan.md`(§3、§4、§5.1、§6)
 > 前置任务:无(其他里程碑的地基)
-> 总体状态:**迁移中(2026-10-20 起新库重建)**
-> 说明:下表 ✅ 为旧代码库(同级目录 `nicole-launcher.broken/`)的完成记录,仅作参考;新库按 handover 文档审查式重建,完成并验证后统一更新状态。
+> 总体状态:**已完成(新库重建于 2026-10-20,实测验收通过)**
+> 说明:下表 ✅ 原为旧代码库(同级目录 `nicole-launcher.broken/`)的完成记录;新库已审查式重建并全部验证通过。
 
 ## 任务清单
 
@@ -25,10 +25,18 @@
 - DS 自测向量固化为 `dsSelfTest()`(`src/api/ds.ts`),dev 模式启动时在控制台自动执行;当前三向量全部通过。
 - `pnpm build`(vue-tsc + vite)零报错,`cargo check` 通过;夜间/日间切换与"重启保留"逻辑已实现,可在 `pnpm tauri dev` 中人工复核。
 
+### 新库重建备注(2026-10-20)
+
+- **根因定位(重要,旧库未解之谜的答案)**:在 macOS 26 WKWebView 中**将 `window.fetch` 全局替换为 plugin-http 的 fetch,会导致页面渲染与输入事件冻结**——JS 事件循环仍存活(网络心跳持续),但无重绘、无事件、窗口缩放不重排。旧库 main.ts 恰好采用此全局替换模式,其"首屏渲染后 JS 静默死亡/白屏"现象与此高度吻合。修复:plugin-http 惰性加载,仅经 axios `env.fetch` 注入(`src/api/http.ts`),`window.fetch` 永不改动,应用启动路径完全不触碰 plugin-http。
+- 防护设施(错误红条 / dev 看门狗 / 自动 devtools / page_ready)按用户决策**未带入**,保持架构简洁;排查期间的临时诊断代码(网络心跳)已全部移除。
+- settings store 修复旧库 bug:`isDark` 由非响应式 computed(`document.documentElement.classList.contains`)改为响应式 ref,夜间切换按钮的图标/文案不再滞留。
+- `vue-i18n` 未引入(旧库装而未用),settings store 相应去掉 locale 字段,待实际需要多语言时再加。
+- 验收实测:webview 渲染/点击/窗口缩放正常;夜间切换即时生效且重启保留(`settings.json` 持久化);`pnpm build` 与 `cargo check` 通过。
+
 ### webview 白屏问题记录(2026-10-20,最终未解决)
 
 - M0 功能实现本身完整且构建通过(浏览器端完全正常),但 `tauri dev` 的 WKWebView 白屏问题经多轮排查未能定位,项目决定迁移至新代码库重开。
-- 完整事实矩阵、已排除项、防护设施与新项目检查清单见 `docs/handover/2026_10_20__003__handover__env_lessons.md`。
+- 完整事实矩阵、已排除项、防护设施与新项目检查清单见 `docs/handover/2026_10_20__003__handover__env_lessons.md`。→ 后续:新库已于 2026-10-20 定位同类根因(window.fetch 全局替换),见上方"新库重建备注"。
 
 ## 实现要点
 
