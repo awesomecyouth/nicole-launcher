@@ -8,12 +8,15 @@ import { load, type Store } from '@tauri-apps/plugin-store'
 import { randomDeviceId53 } from '@/api/headers'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
+export type NoteRefreshInterval = 'off' | '30m' | '60m'
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<ThemeMode>('auto')
   const deviceId = ref('')
   /** HYP 容器扫码/换票用 device_id(53 位),首启生成后固定 */
   const hypDeviceId = ref('')
+  /** 便笺自动刷新间隔(默认关闭,仅应用运行期间有效) */
+  const noteRefreshInterval = ref<NoteRefreshInterval>('off')
   const isDark = ref(false)
   let store: Store | null = null
 
@@ -39,6 +42,7 @@ export const useSettingsStore = defineStore('settings', () => {
         hypDeviceId.value = randomDeviceId53()
         await store.set('hypDeviceId', hypDeviceId.value)
       }
+      noteRefreshInterval.value = (await store.get<NoteRefreshInterval>('noteRefreshInterval')) ?? 'off'
     } catch {
       store = null
     }
@@ -54,5 +58,10 @@ export const useSettingsStore = defineStore('settings', () => {
     await store?.set('theme', mode)
   }
 
-  return { theme, deviceId, hypDeviceId, isDark, init, setTheme }
+  async function setNoteRefreshInterval(mode: NoteRefreshInterval): Promise<void> {
+    noteRefreshInterval.value = mode
+    await store?.set('noteRefreshInterval', mode)
+  }
+
+  return { theme, deviceId, hypDeviceId, noteRefreshInterval, isDark, init, setTheme, setNoteRefreshInterval }
 })

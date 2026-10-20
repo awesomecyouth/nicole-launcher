@@ -48,7 +48,8 @@ export function dsGen2(
   t: number = Math.floor(Date.now() / 1000),
   r: number = randomR2()
 ): string {
-  const b = body === '' ? '{}' : body
+  // 空 body 的默认值按盐区分:PROD 用 "{}",其余盐(如 X4 的 GET)用空串(Snap.Hutao DataSignOptions)
+  const b = body === '' ? (salt === 'PROD' ? '{}' : '') : body
   const q = sortQuery(query)
   const c = md5(`salt=${SALTS[salt]}&t=${t}&r=${r}&b=${b}&q=${q}`)
   return `${t},${r},${c}`
