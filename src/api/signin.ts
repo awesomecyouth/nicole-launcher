@@ -92,11 +92,13 @@ export async function getSignHome(caller: SignCaller): Promise<SignHome> {
 /** 签到状态(is_sign / total_sign_day) */
 export async function getSignInfo(caller: SignCaller): Promise<SignInfo> {
   const { uid, region } = caller.role
-  const raw = await miHoYoRequest<{ total_sign_day: number; today: string; is_sign: boolean; sign_cnt_missed: number }>({
-    method: 'GET',
-    url: `${host(caller.isOversea)}/info?lang=zh-cn&act_id=${actId(caller.isOversea)}&uid=${uid}&region=${region}`,
-    headers: signHeaders(caller, !caller.isOversea),
-  })
+  const raw = await miHoYoRequest<{ total_sign_day: number; today: string; is_sign: boolean; sign_cnt_missed: number }>(
+    {
+      method: 'GET',
+      url: `${host(caller.isOversea)}/info?lang=zh-cn&act_id=${actId(caller.isOversea)}&uid=${uid}&region=${region}`,
+      headers: signHeaders(caller, !caller.isOversea),
+    }
+  )
   return {
     totalSignDay: raw.total_sign_day,
     today: raw.today,
