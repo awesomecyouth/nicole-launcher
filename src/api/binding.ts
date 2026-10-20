@@ -39,7 +39,7 @@ function toRole(raw: RawRole): UserRole {
 export async function getUserFullInfo(
   cred: CookieCredential,
   deviceId: string,
-  isOversea: boolean,
+  isOversea: boolean
 ): Promise<{ nickname: string; avatarUrl: string }> {
   const url = `${isOversea ? OS_BBS : CN_BBS}/user/wapi/getUserFullInfo?uid=${cred.stuid}&gids=2`
   const headers = isOversea
@@ -71,7 +71,11 @@ export async function getActionTicket(cred: CookieCredential): Promise<string> {
 }
 
 /** 角色列表:国服走 action_ticket,国际服 ByCookie(LToken) */
-export async function getUserGameRoles(cred: CookieCredential, gameBiz: string, isOversea: boolean): Promise<UserRole[]> {
+export async function getUserGameRoles(
+  cred: CookieCredential,
+  gameBiz: string,
+  isOversea: boolean
+): Promise<UserRole[]> {
   const raw = isOversea
     ? await miHoYoRequest<{ list: RawRole[] }>({
         method: 'GET',

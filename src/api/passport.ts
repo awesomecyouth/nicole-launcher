@@ -43,7 +43,11 @@ export function createQrLogin(hypDeviceId: string): Promise<QrLogin> {
 
 /** 轮询扫码状态;retcode -3501 表示已过期,需重建二维码 */
 export async function queryQrLoginStatus(hypDeviceId: string, ticket: string): Promise<QrLoginStatus> {
-  const raw = await miHoYoRequest<{ status: string; tokens?: { token_type: number; token: string }[]; user_info?: { aid: string; mid: string } }>({
+  const raw = await miHoYoRequest<{
+    status: string
+    tokens?: { token_type: number; token: string }[]
+    user_info?: { aid: string; mid: string }
+  }>({
     method: 'POST',
     url: `${CN_PASSPORT}/account/ma-cn-passport/app/queryQRLoginStatus`,
     headers: hypHeaders(false, hypDeviceId),
@@ -57,7 +61,10 @@ export async function queryQrLoginStatus(hypDeviceId: string, ticket: string): P
 }
 
 /** stoken → cookie_token(国 GET + DS;国际 POST body,无 DS) */
-export async function getCookieTokenBySToken(cred: CookieCredential, isOversea: boolean): Promise<{ uid: string; cookieToken: string }> {
+export async function getCookieTokenBySToken(
+  cred: CookieCredential,
+  isOversea: boolean
+): Promise<{ uid: string; cookieToken: string }> {
   const raw = isOversea
     ? await miHoYoRequest<{ uid: string; cookie_token: string }>({
         method: 'POST',

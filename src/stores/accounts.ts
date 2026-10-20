@@ -85,12 +85,21 @@ export const useAccountsStore = defineStore('accounts', () => {
    */
   async function addUserWithInit(cred: RawCredential, isOversea: boolean): Promise<MihoyoUser> {
     const settings = useSettingsStore()
-    const [ltoken, cookie] = await Promise.all([
-      getLTokenBySToken(cred, isOversea),
-      getCookieTokenBySToken(cred, isOversea),
-    ])
+
+    /** 各步骤失败时补上步骤标签,避免上层误报错误来源 */
+    async function step<T>(name: string, fn: () => Promise<T>): Promise<T> {
+      try {
+        return await fn()
+      } catch (err) {
+        throw new Error(`${name}:${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+
+    const [ltoken, cookie] = await step('派生登录凭据失败', () =>
+      Promise.all([getLTokenBySToken(cred, isOversea), getCookieTokenBySToken(cred, isOversea)])
+    )
     const fullCred = { ...cred, ltoken, ltuid: cred.stuid }
-    const info = await getUserFullInfo(fullCred, settings.deviceId, isOversea)
+    const info = await step('获取用户信息失败', () => getUserFullInfo(fullCred, settings.deviceId, isOversea))
 
     let roles: UserRole[] = []
     try {
