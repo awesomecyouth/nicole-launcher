@@ -1,9 +1,9 @@
 <script setup lang="ts">
-defineProps<{ modelValue: boolean; title?: string; width?: string }>();
-const emit = defineEmits<{ "update:modelValue": [value: boolean] }>();
+defineProps<{ modelValue: boolean; title?: string; width?: string }>()
+const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 function close(): void {
-  emit("update:modelValue", false);
+  emit('update:modelValue', false)
 }
 </script>
 

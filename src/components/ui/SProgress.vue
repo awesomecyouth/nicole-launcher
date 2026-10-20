@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed } from 'vue'
 
 const props = withDefaults(
   defineProps<{
-    value: number;
-    max: number;
+    value: number
+    max: number
     /** 接近满值(>=90%)时切换为 warning 色 */
-    warnNearFull?: boolean;
+    warnNearFull?: boolean
   }>(),
-  { warnNearFull: true },
-);
+  { warnNearFull: true }
+)
 
-const percent = computed(() => (props.max > 0 ? Math.min(100, (props.value / props.max) * 100) : 0));
+const percent = computed(() => (props.max > 0 ? Math.min(100, (props.value / props.max) * 100) : 0))
 const barClass = computed(() => {
-  if (props.warnNearFull && props.max > 0 && props.value / props.max >= 0.9) return "bg-warning";
-  return "bg-primary";
-});
+  if (props.warnNearFull && props.max > 0 && props.value / props.max >= 0.9) return 'bg-warning'
+  return 'bg-primary'
+})
 </script>
 
 <template>

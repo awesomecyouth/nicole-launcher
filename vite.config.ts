@@ -1,12 +1,18 @@
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-// @ts-expect-error type error without @types/node package
-import process from "node:process";
-const host = process.env.TAURI_DEV_HOST;
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'node:path'
 
-// https://vite.dev/config/
-export default defineConfig(() => ({
-  plugins: [vue()],
+// 本配置不得依赖环境变量(如 TAURI_DEV_HOST):配置内容波动会改变依赖预构建
+// 缓存哈希,触发 "Re-optimizing dependencies"(WKWebView 白屏诱因,见 docs/handover/003)
+export default defineConfig({
+  plugins: [vue(), tailwindcss()],
+
+  resolve: {
+    alias: {
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -16,17 +22,10 @@ export default defineConfig(() => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 1421,
-        }
-      : undefined,
+    host: false,
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      ignored: ['**/src-tauri/**'],
     },
   },
-}));
+})
