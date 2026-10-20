@@ -1,0 +1,49 @@
+/*
+ * Nicole 主题色板 —— 基于 docs/images/nicole.jpg 提取
+ * 珊瑚粉主色 + 暖米浅底 / 紫调深底,组件一律使用语义 token
+ * 规划依据: docs/plans/2026_10_20__001__phase1__development_plan.md §4
+ */
+:root {
+  --nl-bg: #faf3ea;
+  --nl-surface: #fffdfa;
+  --nl-surface-2: #f5e9dd;
+  --nl-text: #3d2b33;
+  --nl-text-2: #8a6f6f;
+  --nl-primary: #cc8478;
+  --nl-primary-strong: #b46060;
+  --nl-primary-soft: #f0ccc0;
+  --nl-border: #ead9cc;
+  --nl-success: #6c9352;
+  --nl-warning: #c98f2f;
+  --nl-danger: #c25b5b;
+}
+
+.dark {
+  --nl-bg: #221628;
+  --nl-surface: #2f1d33;
+  --nl-surface-2: #3c243c;
+  --nl-text: #f0e4e0;
+  --nl-text-2: #b89ca8;
+  --nl-primary: #d89084;
+  --nl-primary-strong: #e4a89c;
+  --nl-primary-soft: #4a2f3f;
+  --nl-border: #4d3844;
+  --nl-success: #8db971;
+  --nl-warning: #d9a441;
+  --nl-danger: #d97c7c;
+}
+
+@theme inline {
+  --color-base: var(--nl-bg);
+  --color-surface: var(--nl-surface);
+  --color-surface-2: var(--nl-surface-2);
+  --color-ink: var(--nl-text);
+  --color-ink-2: var(--nl-text-2);
+  --color-primary: var(--nl-primary);
+  --color-primary-strong: var(--nl-primary-strong);
+  --color-primary-soft: var(--nl-primary-soft);
+  --color-line: var(--nl-border);
+  --color-success: var(--nl-success);
+  --color-warning: var(--nl-warning);
+  --color-danger: var(--nl-danger);
+}

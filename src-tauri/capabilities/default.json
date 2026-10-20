@@ -5,6 +5,16 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "store:default",
+    "dialog:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://*.mihoyo.com" },
+        { "url": "https://*.hoyoverse.com" },
+        { "url": "https://*.hoyolab.com" }
+      ]
+    }
   ]
 }
