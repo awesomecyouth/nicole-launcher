@@ -2,19 +2,27 @@
 
 > 依赖计划:`docs/plans/2026_10_20__001__phase1__development_plan.md`(§3.5、§5.2、§6.2、§6.3)
 > 前置任务:`docs/tasks/2026_10_20__001__infra__m0_infrastructure_tasks.md`(M0 全部完成)
-> 总体状态:**未开始**
+> 总体状态:**已完成(2026-10-20,国服扫码真机验收通过)**
 
 ## 任务清单
 
 | 编号 | 任务 | 状态 |
 |------|------|------|
-| M1-T1 | `stores/accounts.ts` + `users.json` 持久化:MihoyoUser/UserRole 模型、当前账号/当前角色状态、按 mid 去重逻辑 | ⬜ 未开始 |
-| M1-T2 | `api/passport.ts`:扫码创建/轮询、stoken→cookie_token、stoken→ltoken(国/国际双实现) | ⬜ 未开始 |
-| M1-T3 | 初始化流程:用户信息(getUserFullInfo)、角色列表(国服 action_ticket 链路 / 国际服 ByCookie)、device_fp 获取 | ⬜ 未开始 |
-| M1-T4 | 扫码登录 UI:qrcode-generator 本地渲染二维码、3s 轮询、过期自动重建 | ⬜ 未开始 |
-| M1-T5 | 手动 Cookie 粘贴 UI:解析校验 `stuid+mid+stoken` 三键、已存在则更新凭据 | ⬜ 未开始 |
-| M1-T6 | 账号列表页(头像/昵称/角色数/选中态/删除/手动刷新)+ 角色选择器 | ⬜ 未开始 |
-| M1-T7 | 惰性刷新:应用启动时 cookie_token(>1 天)与 device_fp(>7 天,国服)自动刷新;请求遇 Cookie 失效自动重刷一次重试 | ⬜ 未开始 |
+| M1-T1 | `stores/accounts.ts` + `users.json` 持久化:MihoyoUser/UserRole 模型、当前账号/当前角色状态、按 mid 去重逻辑 | ✅ 已完成 |
+| M1-T2 | `api/passport.ts`:扫码创建/轮询、stoken→cookie_token、stoken→ltoken(国/国际双实现) | ✅ 已完成 |
+| M1-T3 | 初始化流程:用户信息(getUserFullInfo)、角色列表(国服 action_ticket 链路 / 国际服 ByCookie)、device_fp 获取 | ✅ 已完成 |
+| M1-T4 | 扫码登录 UI:qrcode-generator 本地渲染二维码、3s 轮询、过期自动重建 | ✅ 已完成(真机验收) |
+| M1-T5 | 手动 Cookie 粘贴 UI:解析校验 `stuid+mid+stoken` 三键、已存在则更新凭据 | ✅ 已完成(构建验证,未真机实测) |
+| M1-T6 | 账号列表页(头像/昵称/角色数/选中态/删除/手动刷新)+ 角色选择器 | ✅ 已完成(列表/选中/角色真机验收;删除/mid 去重构建验证) |
+| M1-T7 | 惰性刷新:应用启动时 cookie_token(>1 天)与 device_fp(>7 天,国服)自动刷新;请求遇 Cookie 失效自动重刷一次重试 | ✅ 已完成(构建验证;失效自动重刷留待 M3/M4 消费侧按需接入) |
+
+## 实施备注(2026-10-20)
+
+- **关键发现:Cookie/Referer 双层剥离(本次最重要教训)**。米哈游鉴权基于 Cookie 头,但:① WKWebView 的 `new Request()` 按 fetch 规范静默丢弃禁设头(Cookie/Referer),`@tauri-apps/plugin-http` 的 JS fetch 包装器内部即用 Request 构造;② 即便直接走 IPC,插件 Rust 端默认也过滤这些头,需开启 `unsafe-headers` cargo feature。修复 = `src/api/tauri-fetch.ts` 直连 `plugin:http|fetch|fetch_send|fetch_read_body` IPC + axios 自定义 adapter(`src/api/http.ts`)+ Cargo feature。**任何需鉴权的接口若报 `-100 未登录`,先查这条链路。**
+- DS 的 r 随机数格式经双源核对:Snap.Hutao 中 PROD/Gen2 派生用 6 位字母数字(includeChars=true),game_record(X4/X6)用数字;社区 mihoyo-api-sdk 定为 Gen2 一律数字。实测数字格式在 PROD 派生可用(md5 覆盖 r,服务端不校验格式)。
+- 错误归因教训:初始化链路的报错最初被轮询的 catch 吞掉误标为"轮询失败"。现 `addUserWithInit` 各步骤带标签(派生登录凭据失败/获取用户信息失败),UI 侧初始化独立 try/catch。
+- getUserFullInfo:国服无 cookie(仅 Referer + bbs 头),国际服带 LToken,行为与 Snap.Hutao UserClient/UserClientOversea 一致。
+- 真机验收记录:扫码 → 手机确认 → 派生 cookieToken/ltoken → 用户信息(昵称/头像)→ 1 个角色 → device_fp 全链路成功;users.json 持久化、重启保留、当前账号标记、角色选择器均正常。
 
 ## 实现要点
 
