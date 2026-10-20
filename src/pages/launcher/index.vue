@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { SButton, SCard } from '@/components/ui'
@@ -25,6 +25,12 @@ const running = ref(false)
 const launchState = ref<'idle' | 'busy' | 'running' | 'error'>('idle')
 const statusText = ref('')
 const errorMsg = ref('')
+/** 启动后的进程检测定时器(游戏不允许双开,须持续检测直到进程出现;组件卸载时清理) */
+let runningPoll: number | undefined
+
+onUnmounted(() => {
+  if (runningPoll !== undefined) window.clearInterval(runningPoll)
+})
 
 const serverLabel = computed(() => ({ cn: '国服官服', bili: 'B 服', os: '国际服' })[gameInfo.value?.server ?? 'cn'])
 
@@ -140,14 +146,23 @@ async function launch(): Promise<void> {
     statusText.value = '正在启动游戏...'
     await invoke('launch_game', { exe: gameInfo.value.exe, args: buildLaunchArgs(settings.launchOptions, ticket) })
 
-    // 稍等后检测运行状态(游戏进程拉起有延迟)
-    for (let i = 0; i < 3; i++) {
-      await new Promise((r) => setTimeout(r, 2000))
-      if (await invoke<boolean>('is_game_running')) break
-    }
-    running.value = await invoke<boolean>('is_game_running')
-    launchState.value = running.value ? 'running' : 'idle'
-    statusText.value = running.value ? '游戏运行中' : '已发起启动(未检测到进程,请稍后自行确认)'
+    // UAC 确认 + 游戏进程冷启动较慢:持续轮询直到进程出现(按钮保持禁用)
+    statusText.value = '已发起启动,等待游戏进程(含 UAC 确认)...'
+    launchState.value = 'busy'
+    await new Promise<void>((resolve) => {
+      runningPoll = window.setInterval(() => {
+        void invoke<boolean>('is_game_running').then((alive) => {
+          if (alive) {
+            window.clearInterval(runningPoll)
+            runningPoll = undefined
+            resolve()
+          }
+        })
+      }, 2000)
+    })
+    running.value = true
+    launchState.value = 'running'
+    statusText.value = '游戏运行中'
   } catch (err) {
     launchState.value = 'error'
     errorMsg.value = errText(err)

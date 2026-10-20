@@ -19,26 +19,32 @@ export interface RawHttpResponse {
   bodyText: string
 }
 
-/** 连接层瞬时失败的标识(reqwest display),对它自动重试一次 */
+/** 连接层瞬时失败的标识(reqwest display),对它自动重试 */
 const RETRYABLE = 'error sending request'
+/** 重试退避间隔(ms) */
+const RETRY_DELAYS_MS = [500, 2000]
 /** 连接超时(ms):插件默认无超时,避免连接挂起导致请求永远 pending */
 const CONNECT_TIMEOUT_MS = 10_000
 
-/** 经 Rust reqwest 发起请求;连接层瞬时失败(Windows 实测偶发)自动重试一次 */
+/** 经 Rust reqwest 发起请求;连接层瞬时失败(Windows 实测偶发)自动退避重试 */
 export async function tauriRawFetch(req: {
   method: string
   url: string
   headers: Record<string, string>
   body?: string | null
 }): Promise<RawHttpResponse> {
-  try {
-    return await rawFetchOnce(req)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    if (!msg.includes(RETRYABLE)) throw err
-    logLine(`net retry ${req.method} ${req.url}: ${msg}`)
-    await new Promise((r) => setTimeout(r, 500))
-    return await rawFetchOnce(req)
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await rawFetchOnce(req)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (!msg.includes(RETRYABLE) || attempt >= RETRY_DELAYS_MS.length) {
+        logLine(`net fail ${req.method} ${req.url}: ${msg}`)
+        throw err
+      }
+      logLine(`net retry(${attempt + 1}) ${req.method} ${req.url}: ${msg}`)
+      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]))
+    }
   }
 }
 
