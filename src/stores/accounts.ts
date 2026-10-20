@@ -5,6 +5,10 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { load, type Store } from '@tauri-apps/plugin-store'
+import { getCookieTokenBySToken, getLTokenBySToken } from '@/api/passport'
+import { getDeviceFp, getUserFullInfo, getUserGameRoles } from '@/api/binding'
+import { genshin } from '@/games/genshin'
+import { useSettingsStore } from './settings'
 
 /** 绑定的游戏角色 */
 export interface UserRole {
@@ -36,6 +40,16 @@ export interface MihoyoUser {
   roles: UserRole[]
 }
 
+/** 根凭据(扫码确认或 Cookie 解析所得) */
+export interface RawCredential {
+  stuid: string
+  stoken: string
+  mid: string
+}
+
+const DAY_MS = 24 * 3600 * 1000
+const FP_STALE_MS = 7 * DAY_MS
+
 export const useAccountsStore = defineStore('accounts', () => {
   const users = ref<MihoyoUser[]>([])
   const currentUserId = ref('')
@@ -61,6 +75,84 @@ export const useAccountsStore = defineStore('accounts', () => {
       }
     } catch {
       store = null
+    }
+    refreshStale().catch((err) => console.error('stale credential refresh failed:', err))
+  }
+
+  /**
+   * 统一入库初始化(扫码确认 / Cookie 粘贴共用):
+   * 派生 token → 用户信息(失败不入库)→ 角色列表(空/失败仍入库)→(国服)device_fp(失败容忍)
+   */
+  async function addUserWithInit(cred: RawCredential, isOversea: boolean): Promise<MihoyoUser> {
+    const settings = useSettingsStore()
+    const [ltoken, cookie] = await Promise.all([
+      getLTokenBySToken(cred, isOversea),
+      getCookieTokenBySToken(cred, isOversea),
+    ])
+    const fullCred = { ...cred, ltoken, ltuid: cred.stuid }
+    const info = await getUserFullInfo(fullCred, settings.deviceId, isOversea)
+
+    let roles: UserRole[] = []
+    try {
+      roles = await getUserGameRoles(fullCred, isOversea ? genshin.biz.os : genshin.biz.cn, isOversea)
+    } catch (err) {
+      console.error('role list fetch failed:', err)
+    }
+
+    const now = Date.now()
+    const user: Omit<MihoyoUser, 'id'> = {
+      aid: cred.stuid,
+      mid: cred.mid,
+      isOversea,
+      stoken: cred.stoken,
+      ltoken,
+      cookieToken: cookie.cookieToken,
+      cookieTokenUpdatedAt: now,
+      nickname: info.nickname,
+      avatarUrl: info.avatarUrl,
+      roles,
+    }
+    if (!isOversea) {
+      try {
+        user.fingerprint = await getDeviceFp(settings.deviceId)
+        user.fpUpdatedAt = now
+      } catch (err) {
+        console.error('device fp fetch failed:', err)
+      }
+    }
+    return upsertUser(user)
+  }
+
+  /** 手动刷新:重派生 ltoken/cookie_token,顺带处理过期的 device_fp */
+  async function refreshUser(userId: string): Promise<void> {
+    const user = users.value.find((u) => u.id === userId)
+    if (!user) return
+    const settings = useSettingsStore()
+    const cred: RawCredential = { stuid: user.aid, stoken: user.stoken, mid: user.mid }
+    const [ltoken, cookie] = await Promise.all([
+      getLTokenBySToken(cred, user.isOversea),
+      getCookieTokenBySToken(cred, user.isOversea),
+    ])
+    user.ltoken = ltoken
+    user.cookieToken = cookie.cookieToken
+    user.cookieTokenUpdatedAt = Date.now()
+    if (!user.isOversea && (!user.fingerprint || Date.now() - (user.fpUpdatedAt ?? 0) > FP_STALE_MS)) {
+      try {
+        user.fingerprint = await getDeviceFp(settings.deviceId, user.fingerprint)
+        user.fpUpdatedAt = Date.now()
+      } catch (err) {
+        console.error('device fp refresh failed:', err)
+      }
+    }
+    await persist()
+  }
+
+  /** 启动惰性刷新:cookie_token 超过 1 天(或缺失)的账号自动重派生 */
+  async function refreshStale(): Promise<void> {
+    for (const user of users.value) {
+      if (!user.cookieToken || Date.now() - user.cookieTokenUpdatedAt > DAY_MS) {
+        await refreshUser(user.id).catch((err) => console.error(`refresh ${user.aid} failed:`, err))
+      }
     }
   }
 
@@ -112,6 +204,8 @@ export const useAccountsStore = defineStore('accounts', () => {
     currentRole,
     init,
     upsertUser,
+    addUserWithInit,
+    refreshUser,
     removeUser,
     setCurrent,
     setPreferredUid,
