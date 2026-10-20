@@ -2,17 +2,25 @@
 
 > 依赖计划:`docs/plans/2026_10_20__001__phase1__development_plan.md`(§5.4、§6.1、§6.2、§6.4)
 > 前置任务:`docs/tasks/2026_10_20__002__account__m1_account_management_tasks.md`(M1 全部完成,需要当前账号/角色与 cookie_token 刷新链)
-> 总体状态:**未开始**
+> 总体状态:**基本完成(2026-10-20,展示链路真机验收;一键签到动作待次日未签状态实测)**
 
 ## 任务清单
 
 | 编号 | 任务 | 状态 |
 |------|------|------|
-| M3-T1 | `api/signin.ts`:`home`(月历奖励)、`info`(签到状态)、`sign`(签到)三接口,国/国际双实现 | ⬜ 未开始 |
-| M3-T2 | `stores/sign.ts`:当前角色签到状态、月历数据、签到动作状态机(空闲/签到位/已签/风控/失败) | ⬜ 未开始 |
-| M3-T3 | 签到卡片 UI:今日状态 + 累计天数 + 月历奖励网格(已领高亮、滚动定位当日) | ⬜ 未开始 |
-| M3-T4 | 一键签到 + 风控兜底(`gt/challenge`/`risk_code` 时提示并 opener 打开官方签到页) | ⬜ 未开始 |
-| M3-T5 | Dashboard 集成:启动时拉取 info,未签时给出醒目提示 | ⬜ 未开始 |
+| M3-T1 | `api/signin.ts`:`home`(月历奖励)、`info`(签到状态)、`sign`(签到)三接口,国/国际双实现 | ✅ 已完成 |
+| M3-T2 | `stores/sign.ts`:当前角色签到状态、月历数据、签到动作状态机(空闲/签到位/已签/风控/失败) | ✅ 已完成 |
+| M3-T3 | 签到卡片 UI:今日状态 + 累计天数 + 月历奖励网格(已领高亮、滚动定位当日) | ✅ 已完成(真机验收) |
+| M3-T4 | 一键签到 + 风控兜底(`gt/challenge`/`risk_code` 时提示并 opener 打开官方签到页) | ✅ 已完成(构建验证;风控分支无法主动触发) |
+| M3-T5 | Dashboard 集成:启动时拉取 info,未签时给出醒目提示 | ✅ 已完成(真机验收) |
+
+## 实施备注(2026-10-20)
+
+- URL 格式双源核对:社区 mihoyo-api-sdk 用 `/event/luna/{game}/info`(带 game 段),交接文档用 `/event/luna/info`;curl 实测**两种均有效**,实现取无 game 段格式。
+- 头部与参考实现(SignInClient/Oversea)对齐:国服 BBS 预设 + CookieToken + `x-rpc-signgame: hk4e`(+ device_fp),info/sign 加 Gen1/LK2 DS;国际服仅 Cookie 与 Accept(无 x-rpc 公共头、无 DS)。
+- Gen1 签名不含 body/query,info(GET)与 sign(POST)共用 `dsGen1('LK2')`。
+- 真机验收记录:info + home 拉取正常,月历渲染、已领高亮、当日定位正确;当日已在官方签过 → 按钮正确禁用(幂等,以服务端 is_sign 为准)。**一键签到动作(未签→sign→高亮推进)待次日未签状态时补验**;-5003 优雅路径同理。
+- 签到状态 5 分钟短缓存(`stores/sign.ts` lastLoadedUid/lastLoadedAt),切换角色自动重拉。
 
 ## 实现要点
 
