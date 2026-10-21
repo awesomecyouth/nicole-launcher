@@ -51,7 +51,20 @@ const noteRefreshOptions: { value: NoteRefreshInterval; label: string }[] = [
           </SButton>
         </div>
       </div>
-      <p class="mt-2 text-xs text-ink-2">仅应用运行期间有效;刷新失败不会清空已有数据。</p>
+      <div class="mt-3 flex items-center gap-2">
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            :checked="settings.refreshNoteOnOpen"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setRefreshNoteOnOpen(($event.target as HTMLInputElement).checked)"
+          />
+          打开应用时自动刷新
+        </label>
+      </div>
+      <p class="mt-2 text-xs text-ink-2">
+        仅应用运行期间有效;刷新失败不会清空已有数据。关闭「打开时自动刷新」则启动仅展示本地缓存数据(含上次更新时间)。
+      </p>
     </SCard>
 
     <SCard title="语言">

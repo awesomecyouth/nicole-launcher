@@ -32,6 +32,18 @@ function fmtDuration(seconds: number): string {
 
 const resin = computed(() => notes.note?.resin)
 const resinFullAt = computed(() => fmtDuration(remaining(resin.value?.recoveryTime ?? 0)))
+/** 更新时间(带日期,本地缓存可能跨天) */
+const fetchedAtText = computed(() =>
+  notes.fetchedAt
+    ? `更新于 ${new Date(notes.fetchedAt).toLocaleString('zh-CN', {
+        hour12: false,
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })}`
+    : ''
+)
 
 watch(
   () => accounts.currentRole?.uid,
@@ -46,9 +58,7 @@ watch(
   <SCard title="每日便笺">
     <template #header>
       <div class="flex items-center gap-2 text-xs text-ink-2">
-        <span v-if="notes.fetchedAt">{{
-          new Date(notes.fetchedAt).toLocaleTimeString('zh-CN', { hour12: false })
-        }}</span>
+        <span v-if="fetchedAtText">{{ fetchedAtText }}</span>
         <SButton v-if="role" size="sm" variant="ghost" :loading="notes.state === 'loading'" @click="notes.load(true)">
           刷新
         </SButton>

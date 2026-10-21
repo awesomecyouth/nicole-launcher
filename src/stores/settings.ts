@@ -31,6 +31,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const hypDeviceId = ref('')
   /** 便笺自动刷新间隔(默认关闭,仅应用运行期间有效) */
   const noteRefreshInterval = ref<NoteRefreshInterval>('off')
+  /** 打开应用时是否后台刷新便笺(关闭则仅展示本地缓存数据) */
+  const refreshNoteOnOpen = ref(true)
   /** 启动参数开关(默认值对齐 Snap.Hutao:窗口化) */
   const launchOptions = ref<LaunchArgOptions>({ ...defaultLaunchOptions })
   /** 已校验的游戏 exe 路径(空 = 未设置) */
@@ -63,6 +65,7 @@ export const useSettingsStore = defineStore('settings', () => {
         await store.set('hypDeviceId', hypDeviceId.value)
       }
       noteRefreshInterval.value = (await store.get<NoteRefreshInterval>('noteRefreshInterval')) ?? 'off'
+      refreshNoteOnOpen.value = (await store.get<boolean>('refreshNoteOnOpen')) ?? true
       launchOptions.value = { ...defaultLaunchOptions, ...(await store.get<LaunchArgOptions>('launchOptions')) }
       gameExe.value = (await store.get<string>('gameExe')) ?? ''
     } catch {
@@ -88,6 +91,11 @@ export const useSettingsStore = defineStore('settings', () => {
     await store?.set('noteRefreshInterval', mode)
   }
 
+  async function setRefreshNoteOnOpen(value: boolean): Promise<void> {
+    refreshNoteOnOpen.value = value
+    await store?.set('refreshNoteOnOpen', value)
+  }
+
   async function setLaunchOptions(patch: Partial<LaunchArgOptions>): Promise<void> {
     launchOptions.value = { ...launchOptions.value, ...patch }
     await store?.set('launchOptions', launchOptions.value)
@@ -103,6 +111,7 @@ export const useSettingsStore = defineStore('settings', () => {
     deviceId,
     hypDeviceId,
     noteRefreshInterval,
+    refreshNoteOnOpen,
     launchOptions,
     gameExe,
     isWindows,
@@ -110,6 +119,7 @@ export const useSettingsStore = defineStore('settings', () => {
     init,
     setTheme,
     setNoteRefreshInterval,
+    setRefreshNoteOnOpen,
     setLaunchOptions,
     setGameExe,
   }

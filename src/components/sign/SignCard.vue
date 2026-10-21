@@ -31,8 +31,10 @@ watch(
 watch(todayIndex, async (idx) => {
   if (idx < 0 || !gridRef.value) return
   await nextTick()
-  const cell = gridRef.value.children[idx] as HTMLElement | undefined
-  cell?.scrollIntoView({ block: 'nearest' })
+  // 仅滚动日历网格自身(scrollIntoView 会级联滚动祖先,把整页顶上去造成跳动)
+  const grid = gridRef.value
+  const cell = grid.children[idx] as HTMLElement | undefined
+  if (cell) grid.scrollTop = cell.offsetTop - grid.clientHeight / 2 + cell.clientHeight / 2
 })
 
 /** 独立函数读取,避免外层窄化误传(store 内部已变更 state) */
@@ -98,8 +100,8 @@ function openOfficial(): void {
         今日尚未签到,点击右上角「一键签到」领取奖励
       </div>
 
-      <!-- 月历奖励网格:7 列,已领高亮,当日定位 -->
-      <div ref="gridRef" class="grid max-h-72 grid-cols-7 gap-1.5 overflow-y-auto">
+      <!-- 月历奖励网格:固定高度(加载中也占位,页面高度稳定不闪滚动条);7 列,已领高亮,当日居中 -->
+      <div ref="gridRef" class="relative grid h-72 grid-cols-7 gap-1.5 overflow-y-auto">
         <div
           v-for="(award, i) in sign.awards"
           :key="i"
