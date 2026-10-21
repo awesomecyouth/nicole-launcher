@@ -9,16 +9,6 @@ const routes = [
     component: Dashboard,
   },
   {
-    name: 'accounts',
-    path: '/accounts',
-    component: () => import('@/pages/accounts/index.vue'),
-  },
-  {
-    name: 'launcher',
-    path: '/launcher',
-    component: () => import('@/pages/launcher/index.vue'),
-  },
-  {
     name: 'settings',
     path: '/settings',
     component: () => import('@/pages/settings/index.vue'),

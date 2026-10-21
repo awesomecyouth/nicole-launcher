@@ -67,6 +67,86 @@ const noteRefreshOptions: { value: NoteRefreshInterval; label: string }[] = [
       </p>
     </SCard>
 
+    <SCard title="启动参数">
+      <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            v-model="settings.launchOptions.fullscreen"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setLaunchOptions({ fullscreen: settings.launchOptions.fullscreen })"
+          />全屏
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            v-model="settings.launchOptions.borderless"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setLaunchOptions({ borderless: settings.launchOptions.borderless })"
+          />无边框(-popupwindow)
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            v-model="settings.launchOptions.exclusive"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setLaunchOptions({ exclusive: settings.launchOptions.exclusive })"
+          />独占全屏(-window-mode exclusive)
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            v-model="settings.launchOptions.monitorEnabled"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setLaunchOptions({ monitorEnabled: settings.launchOptions.monitorEnabled })"
+          />指定显示器
+        </label>
+        <label v-if="settings.launchOptions.monitorEnabled" class="flex items-center gap-2 text-ink">
+          显示器编号
+          <input
+            v-model.number="settings.launchOptions.monitor"
+            type="number"
+            min="1"
+            class="w-16 rounded border border-line bg-surface px-2 py-1 text-xs"
+            @change="settings.setLaunchOptions({ monitor: settings.launchOptions.monitor })"
+          />
+        </label>
+      </div>
+      <div class="mt-3 flex items-center gap-4 text-sm">
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            v-model="settings.launchOptions.widthEnabled"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setLaunchOptions({ widthEnabled: settings.launchOptions.widthEnabled })"
+          />宽度
+          <input
+            v-model.number="settings.launchOptions.width"
+            type="number"
+            :disabled="!settings.launchOptions.widthEnabled"
+            class="w-20 rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-50"
+            @change="settings.setLaunchOptions({ width: settings.launchOptions.width })"
+          />
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 text-ink">
+          <input
+            v-model="settings.launchOptions.heightEnabled"
+            type="checkbox"
+            class="accent-primary"
+            @change="settings.setLaunchOptions({ heightEnabled: settings.launchOptions.heightEnabled })"
+          />高度
+          <input
+            v-model.number="settings.launchOptions.height"
+            type="number"
+            :disabled="!settings.launchOptions.heightEnabled"
+            class="w-20 rounded border border-line bg-surface px-2 py-1 text-xs disabled:opacity-50"
+            @change="settings.setLaunchOptions({ height: settings.launchOptions.height })"
+          />
+        </label>
+      </div>
+      <p class="mt-2 text-xs text-ink-2">Unity 命令行参数,启动时拼装传入;不含任何注入类功能。</p>
+    </SCard>
+
     <SCard title="语言">
       <p class="text-ink-2">中文</p>
       <!-- TODO @i18n 接入 vue-i18n 并开放语言切换 -->

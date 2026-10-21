@@ -9,13 +9,8 @@ const settings = useSettingsStore()
 
 const menus = [
   { name: 'dashboard', label: 'Dashboard' },
-  { name: 'accounts', label: 'Accounts' },
-  { name: 'launcher', label: 'Launcher' },
   { name: 'settings', label: 'Settings' },
 ]
-
-// 启动游戏仅 Windows 可用,非 Windows 隐藏该入口
-const visibleMenus = computed(() => (settings.isWindows ? menus : menus.filter((m) => m.name !== 'launcher')))
 
 const activeMenu = computed(() => (route.name as string) ?? 'dashboard')
 const onMenuClick = (menuName: string) => {
@@ -78,12 +73,12 @@ const toggleTheme = () => {
       </div>
       <div class="flex flex-1 flex-col items-start justify-start gap-2 py-2">
         <div
-          v-for="(menu, i) in visibleMenus"
+          v-for="(menu, i) in menus"
           :key="menu.name"
           class="w-full cursor-pointer rounded-l-lg p-4 transition-all duration-300 hover:bg-primary hover:text-white hover:shadow-2xl"
           :class="{
             'bg-primary font-semibold text-white shadow-lg shadow-primary/40': activeMenu === menu.name,
-            'mt-auto': i === visibleMenus.length - 1,
+            'mt-auto': i === menus.length - 1,
           }"
           @click="onMenuClick(menu.name)"
         >

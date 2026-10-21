@@ -46,11 +46,7 @@ const spinnerClass = computed(
     class="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
     :class="[variantClass, sizeClass]"
   >
-    <span
-      v-if="loading"
-      class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2"
-      :class="spinnerClass"
-    />
+    <span v-if="loading" class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2" :class="spinnerClass" />
     <slot />
   </button>
 </template>
