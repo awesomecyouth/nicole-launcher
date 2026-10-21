@@ -11,7 +11,7 @@ const accounts = useAccountsStore()
 
 const menus = [
   { name: 'dashboard', label: 'Dashboard' },
-  { name: 'accounts', label: '账号管理' },
+  { name: 'accounts', label: 'Accounts' },
 ]
 
 const activeMenu = computed(() => (route.name as string) ?? 'dashboard')
@@ -114,8 +114,8 @@ const refreshIcon = () => {
 </script>
 
 <template>
-  <div class="flex h-full w-full flex-row bg-base py-4 pe-4">
-    <aside class="flex min-w-64 flex-col ps-4 pe-4">
+  <div class="flex h-full w-full flex-row bg-base">
+    <aside class="flex min-w-64 flex-col ps-4 py-4">
       <div class="flex flex-row items-end justify-start gap-2 py-2">
         <img :src="iconHref" class="w-15 cursor-pointer" alt="Logo" @click="refreshIcon" />
         <span class="cursor-pointer font-extrabold text-ink" @click="refreshIcon">{{ launcherPrefix }} Launcher</span>
