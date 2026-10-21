@@ -12,16 +12,24 @@ const notes = useNotesStore()
 const expanded = ref<Set<string>>(new Set())
 const refreshing = ref(false)
 
-/** 账号排序:当前账号在前 */
-const orderedUsers = computed<MihoyoUser[]>(() => {
-  const users = [...accounts.users]
-  users.sort((a, b) => (a.id === accounts.currentUserId ? -1 : b.id === accounts.currentUserId ? 1 : 0))
-  return users
+/** 参与展示的卡片:当前账号全部角色 + 已展开的其他账号角色,单一横向流 */
+const visibleCards = computed(() => {
+  const cards: { uid: string }[] = []
+  const ordered = [...accounts.users].sort((a, b) =>
+    a.id === accounts.currentUserId ? -1 : b.id === accounts.currentUserId ? 1 : 0
+  )
+  for (const user of ordered) {
+    if (user.id === accounts.currentUserId || expanded.value.has(user.id)) {
+      for (const role of user.roles) cards.push({ uid: role.uid })
+    }
+  }
+  return cards
 })
 
-function isExpanded(user: MihoyoUser): boolean {
-  return user.id === accounts.currentUserId || expanded.value.has(user.id)
-}
+/** 未展开的其他账号(以芯片行形式提供入口) */
+const collapsedUsers = computed<MihoyoUser[]>(() =>
+  accounts.users.filter((u) => u.id !== accounts.currentUserId && !expanded.value.has(u.id))
+)
 
 /** 展开/收起非当前账号;首次展开按需拉取其角色便笺(串行,仅拉缺失) */
 async function toggleExpand(user: MihoyoUser): Promise<void> {
@@ -32,7 +40,7 @@ async function toggleExpand(user: MihoyoUser): Promise<void> {
     next.add(user.id)
   }
   expanded.value = next
-  if (isExpanded(user)) {
+  if (expanded.value.has(user.id)) {
     for (const role of user.roles) {
       void notes.loadUid(role.uid)
       await new Promise((r) => setTimeout(r, 800))
@@ -40,12 +48,9 @@ async function toggleExpand(user: MihoyoUser): Promise<void> {
   }
 }
 
-/** 一键刷新:当前账号全部角色 + 已展开的其他账号角色(串行防风控) */
+/** 一键刷新:所有已展示角色(串行防风控) */
 async function refreshAll(): Promise<void> {
-  const uids: string[] = []
-  for (const user of orderedUsers.value) {
-    if (isExpanded(user)) uids.push(...user.roles.map((r) => r.uid))
-  }
+  const uids = visibleCards.value.map((c) => c.uid)
   if (uids.length === 0) return
   refreshing.value = true
   try {
@@ -63,69 +68,39 @@ async function refreshAll(): Promise<void> {
     </template>
 
     <div v-if="accounts.users.length === 0" class="py-8 text-center text-sm text-ink-2">
-      添加米游社账号后,可在此查看全部角色的实时便笺
+      在左侧头像菜单中添加米游社账号后,可在此查看全部角色的实时便笺
     </div>
 
-    <div v-else class="flex flex-col gap-4">
-      <div v-for="user in orderedUsers" :key="user.id">
-        <!-- 账号组头:当前账号直接展开;其他账号可点击展开/收起 -->
+    <template v-else>
+      <!-- 未展开账号芯片入口 -->
+      <div v-if="collapsedUsers.length > 0" class="mb-3 flex flex-wrap gap-2">
         <button
-          class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-1 py-1.5 text-left text-sm transition-colors hover:bg-surface-2"
-          @click="user.id !== accounts.currentUserId && toggleExpand(user)"
+          v-for="user in collapsedUsers"
+          :key="user.id"
+          class="flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary"
+          @click="toggleExpand(user)"
         >
           <img
             v-if="user.avatarUrl"
             :src="user.avatarUrl"
-            class="h-5 w-5 rounded-full object-cover"
+            class="h-4 w-4 rounded-full object-cover"
             alt="avatar"
             referrerpolicy="no-referrer"
           />
-          <span
-            v-else
-            class="flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft text-[10px] font-bold text-ink"
-          >
-            {{ (user.nickname || user.aid).charAt(0) }}
-          </span>
-          <span class="font-medium text-ink">{{ user.nickname || '未命名' }}</span>
-          <span
-            class="rounded px-1.5 py-0.5 text-[10px]"
-            :class="user.isOversea ? 'bg-warning/20 text-warning' : 'bg-primary-soft text-primary-strong'"
-          >
-            {{ user.isOversea ? '国际服' : '国服' }}
-          </span>
-          <span class="text-xs text-ink-2">{{ user.roles.length }} 个角色</span>
-          <svg
-            v-if="user.id !== accounts.currentUserId"
-            viewBox="0 0 24 24"
-            class="ml-auto h-3.5 w-3.5 text-ink-2"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            :class="{ 'rotate-180': isExpanded(user) }"
-          >
-            <path d="m6 9 6 6 6-6" />
+          {{ user.nickname || user.aid }} · {{ user.roles.length }} 角色
+          <svg viewBox="0 0 24 24" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14m-6-6 6 6 6-6" />
           </svg>
         </button>
+      </div>
 
-        <!-- 展开态:逐角色便笺卡 -->
-        <div v-if="isExpanded(user)" class="mt-2 flex flex-col gap-4">
-          <NoteCard v-for="role in user.roles" :key="role.uid" :uid="role.uid" />
-          <p v-if="user.roles.length === 0" class="px-1 py-2 text-xs text-ink-2">该账号无原神角色</p>
-        </div>
-        <!-- 折叠态:角色摘要行(展示已有缓存数据,无则提示未加载) -->
-        <div v-else class="mt-1 flex flex-wrap gap-2 px-1">
-          <span
-            v-for="role in user.roles"
-            :key="role.uid"
-            class="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink-2"
-          >
-            {{ role.nickname }}
-            <template v-if="notes.entryOf(role.uid)">
-              · 树脂 {{ notes.entryOf(role.uid)!.note.resin.current }}/{{ notes.entryOf(role.uid)!.note.resin.max }}
-            </template>
-          </span>
+      <!-- 全部已展开角色的便笺卡:固定宽度横向 flow(最大化窗口多列铺开) -->
+      <div v-if="visibleCards.length > 0" class="flex flex-wrap gap-4">
+        <div v-for="card in visibleCards" :key="card.uid" class="w-90">
+          <NoteCard :uid="card.uid" />
         </div>
       </div>
-    </div>
+      <p v-else class="py-6 text-center text-xs text-ink-2">当前账号暂无原神角色</p>
+    </template>
   </SCard>
 </template>

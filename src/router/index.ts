@@ -9,6 +9,11 @@ const routes = [
     component: Dashboard,
   },
   {
+    name: 'accounts',
+    path: '/accounts',
+    component: () => import('@/pages/accounts/index.vue'),
+  },
+  {
     name: 'settings',
     path: '/settings',
     component: () => import('@/pages/settings/index.vue'),
@@ -19,6 +24,13 @@ const routes = [
     // 裸页(无侧边栏布局),供验证子窗口加载
     meta: { bare: true },
     component: () => import('@/pages/geetest/index.vue'),
+  },
+  {
+    name: 'sign',
+    path: '/sign',
+    // 裸页,供签到日例子窗口加载
+    meta: { bare: true },
+    component: () => import('@/pages/sign/index.vue'),
   },
 ]
 

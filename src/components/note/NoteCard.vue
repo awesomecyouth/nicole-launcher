@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { SButton, SCard, SProgress } from '@/components/ui'
+import { openSignWindow } from '@/components/sign/signWindow'
 import { useAccountsStore, type UserRole } from '@/stores/accounts'
 import { useNotesStore } from '@/stores/notes'
+import { useSignStore } from '@/stores/sign'
 
 const props = defineProps<{ uid?: string }>()
 const accounts = useAccountsStore()
 const notes = useNotesStore()
+const sign = useSignStore()
 
 /** 目标角色(默认当前角色);跨账号查找归属 */
 const uid = computed(() => props.uid ?? accounts.currentRole?.uid ?? '')
@@ -17,6 +20,18 @@ const role = computed<UserRole | null>(() => {
   }
   return null
 })
+/** 归属账号昵称(多账号时在卡头标识) */
+const accountName = computed(() => {
+  for (const user of accounts.users) {
+    if (user.roles.some((r) => r.uid === uid.value)) return user.nickname || user.aid
+  }
+  return ''
+})
+const multiAccount = computed(() => accounts.users.length > 1)
+
+const signState = computed(() => sign.stateOf(uid.value))
+const signInfo = computed(() => sign.infoOf(uid.value))
+const signLoading = computed(() => sign.stateOf(uid.value) === 'loading')
 
 const note = computed(() => notes.entryOf(uid.value)?.note ?? null)
 const fetchedAt = computed(() => notes.entryOf(uid.value)?.fetchedAt ?? 0)
@@ -62,10 +77,19 @@ const fetchedAtText = computed(() =>
 watch(
   uid,
   (value) => {
-    if (value) void notes.loadUid(value)
+    if (value) {
+      void notes.loadUid(value)
+      void sign.loadUid(value)
+    }
   },
   { immediate: true }
 )
+
+/** 便笺内快捷签到;风控则转入日历窗口处理 */
+async function quickSign(): Promise<void> {
+  await sign.signUid(uid.value)
+  if (sign.stateOf(uid.value) === 'risk') openSignWindow(uid.value)
+}
 </script>
 
 <template>
@@ -86,6 +110,31 @@ watch(
       <div class="mb-3 flex items-center gap-3 text-sm">
         <span class="font-medium text-ink">{{ role.nickname }} · {{ role.uid }}</span>
         <span class="text-ink-2">{{ role.regionName }}</span>
+        <span v-if="multiAccount" class="rounded bg-surface-2 px-1.5 py-0.5 text-xs text-ink-2">
+          {{ accountName }}
+        </span>
+      </div>
+
+      <!-- 每日签到(集成入口):点击整行打开日历窗口 -->
+      <div
+        class="mb-3 flex cursor-pointer items-center justify-between rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-primary hover:bg-surface-2"
+        @click="openSignWindow(uid)"
+      >
+        <span class="flex items-center gap-2 text-ink">
+          每日签到
+          <span v-if="signState === 'signed'" class="text-xs text-success">已签 · {{ signInfo?.totalSignDay }} 天</span>
+          <span v-else-if="signState === 'unsigned'" class="text-xs text-warning">今日未签</span>
+          <span v-else-if="signState === 'risk'" class="text-xs text-warning">触发风控</span>
+          <span v-else-if="signState === 'error'" class="text-xs text-danger" :title="sign.errorOf(uid)">获取失败</span>
+        </span>
+        <span class="flex items-center gap-2">
+          <SButton v-if="signState === 'unsigned'" size="sm" :loading="signLoading" @click.stop="quickSign">
+            签到
+          </SButton>
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 text-ink-2" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </span>
       </div>
 
       <!-- 风控态 -->
@@ -123,10 +172,10 @@ watch(
           <SProgress :value="resin?.current ?? 0" :max="resin?.max ?? 1" />
         </div>
 
-        <!-- 探索派遣 -->
+        <!-- 探索派遣(单行排列,不换行) -->
         <div v-if="note.expeditions.length > 0">
           <div class="mb-1 text-sm font-medium text-ink">探索派遣</div>
-          <div class="flex flex-wrap gap-3">
+          <div class="flex flex-nowrap gap-2">
             <div v-for="(e, i) in note.expeditions" :key="i" class="flex w-14 flex-col items-center gap-1">
               <img :src="e.avatarSideIcon" class="h-10 w-10" alt="expedition" referrerpolicy="no-referrer" />
               <span class="text-center text-[10px]" :class="e.status === 'Finished' ? 'text-success' : 'text-ink-2'">
