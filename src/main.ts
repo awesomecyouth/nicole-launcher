@@ -5,6 +5,7 @@ import router from './router'
 import { useSettingsStore } from './stores/settings'
 import { useAccountsStore } from './stores/accounts'
 import { useNotesStore } from './stores/notes'
+import { useLauncherStore } from './stores/launcher'
 import { logLine } from './api/logger'
 import './styles/main.css'
 
@@ -19,6 +20,7 @@ app.mount('#app')
 void useSettingsStore(pinia).init()
 void useAccountsStore(pinia).init()
 useNotesStore(pinia).setupAutoRefresh()
+useLauncherStore(pinia).setupMonitor()
 
 // 页面错误红条的内容同步写入运行日志(nicole:error 由 index.html 派发)
 window.addEventListener('nicole:error', (e) => logLine(String((e as CustomEvent).detail)))

@@ -1,11 +1,10 @@
 /**
- * 实时便笺状态:当前角色便笺数据 + 风控态 + 自动刷新定时器
+ * 实时便笺状态(多角色):按 uid 维护数据/状态,磁盘持久化(notes.json)
  * 倒计时不在 store 推进:数据存 recoveryTime 秒数与 fetchedAt,由 UI 每分钟重渲染
- * 便笺数据按 uid 持久化到 notes.json:启动即展示本地数据(带更新时间),避免骨架屏跳动
- * 依据: docs/tasks/2026_10_20__005__dailynote__m4_daily_note_tasks.md
+ * 依据: docs/tasks/2026_10_21__001__ux__dashboard_restructure_tasks.md D-T2
  */
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { load as loadStore, type Store } from '@tauri-apps/plugin-store'
 import { getDailyNote, type DailyNote, type NoteCaller } from '@/api/dailynote'
 import { MiHoYoApiError } from '@/api/http'
@@ -15,22 +14,43 @@ import { useSettingsStore } from './settings'
 
 export type NoteState = 'idle' | 'loading' | 'ok' | 'risk' | 'error'
 
-interface PersistedNote {
+interface NoteEntry {
   note: DailyNote
   fetchedAt: number
 }
 
-export const useNotesStore = defineStore('notes', () => {
-  const state = ref<NoteState>('idle')
-  const errorMsg = ref('')
-  const note = ref<DailyNote | null>(null)
-  /** 数据获取时刻(ms),倒计时本地推进的基准 */
-  const fetchedAt = ref(0)
+/** 串行批量刷新的间隔(ms),防多角色并行拉取放大 1034 风控 */
+const SERIAL_REFRESH_GAP_MS = 1500
 
-  let lastLoadedUid = ''
+export const useNotesStore = defineStore('notes', () => {
+  /** uid → 便笺数据(含获取时刻) */
+  const entries = ref<Record<string, NoteEntry>>({})
+  /** uid → 请求状态/错误信息 */
+  const states = ref<Record<string, NoteState>>({})
+  const errors = ref<Record<string, string>>({})
+
   let timer: number | undefined
   let persisted: Store | null = null
   let persistedLoading: Promise<void> | null = null
+
+  /** 当前角色视图(NoteCard 等单角色消费方的兼容接口) */
+  const currentUid = computed(() => useAccountsStore().currentRole?.uid ?? '')
+  const note = computed<DailyNote | null>(() => entries.value[currentUid.value]?.note ?? null)
+  const fetchedAt = computed(() => entries.value[currentUid.value]?.fetchedAt ?? 0)
+  const state = computed<NoteState>(() => states.value[currentUid.value] ?? 'idle')
+  const errorMsg = computed(() => errors.value[currentUid.value] ?? '')
+
+  function entryOf(uid: string): NoteEntry | null {
+    return entries.value[uid] ?? null
+  }
+
+  function stateOf(uid: string): NoteState {
+    return states.value[uid] ?? 'idle'
+  }
+
+  function errorOf(uid: string): string {
+    return errors.value[uid] ?? ''
+  }
 
   /** 惰性初始化本地持久化(notes.json);非 Tauri 环境跳过 */
   function ensurePersisted(): Promise<void> {
@@ -45,70 +65,85 @@ export const useNotesStore = defineStore('notes', () => {
     return persistedLoading
   }
 
-  async function readPersisted(uid: string): Promise<PersistedNote | null> {
+  async function readPersisted(uid: string): Promise<NoteEntry | null> {
     await ensurePersisted()
-    return (await persisted?.get<PersistedNote>(`note:${uid}`)) ?? null
+    return (await persisted?.get<NoteEntry>(`note:${uid}`)) ?? null
   }
 
-  function writePersisted(uid: string, data: PersistedNote): void {
+  function writePersisted(uid: string, data: NoteEntry): void {
     void ensurePersisted().then(() => persisted?.set(`note:${uid}`, data))
   }
 
-  function callerFor(): NoteCaller | null {
+  /** uid → 请求上下文(在全部账号中查找该角色归属) */
+  function callerForUid(uid: string): NoteCaller | null {
     const accounts = useAccountsStore()
-    const user = accounts.currentUser
-    const role = accounts.currentRole
-    if (!user || !role) return null
-    return {
-      cred: { accountId: user.aid, cookieToken: user.cookieToken, ltoken: user.ltoken, ltuid: user.aid },
-      deviceId: useSettingsStore().deviceId,
-      isOversea: user.isOversea,
-      fingerprint: user.fingerprint,
-      role,
+    for (const user of accounts.users) {
+      const role = user.roles.find((r) => r.uid === uid)
+      if (role) {
+        return {
+          cred: { accountId: user.aid, cookieToken: user.cookieToken, ltoken: user.ltoken, ltuid: user.aid },
+          deviceId: useSettingsStore().deviceId,
+          isOversea: user.isOversea,
+          fingerprint: user.fingerprint,
+          role,
+        }
+      }
     }
+    return null
   }
 
   /**
-   * 拉取便笺:
-   *  - 内存已有该角色数据且非强制 → 直接复用(避免每次到首页都刷新);
-   *  - 否则先用磁盘持久化数据即时占位(跨启动也生效),关闭「打开时刷新」则止步于此;
-   *  - 1034 → 风控态;失败不清空已有数据;手动/定时刷新走 force
+   * 拉取指定角色的便笺:
+   *  - 已有该角色数据且非强制 → 直接复用;
+   *  - 否则先用磁盘持久化数据即时占位,关闭「打开时刷新」则止步于此;
+   *  - 1034 → 风控态;失败不清空已有数据
    */
-  async function load(force = false): Promise<void> {
-    const caller = callerFor()
-    if (!caller) {
-      state.value = 'idle'
-      return
-    }
-    if (!force && caller.role.uid === lastLoadedUid && note.value) return
+  async function loadUid(uid: string, force = false): Promise<void> {
+    if (!uid) return
+    if (!force && entries.value[uid]) return
 
-    if (caller.role.uid !== lastLoadedUid) {
-      const saved = await readPersisted(caller.role.uid)
+    if (!entries.value[uid]) {
+      const saved = await readPersisted(uid)
       if (saved) {
-        note.value = saved.note
-        fetchedAt.value = saved.fetchedAt
-        state.value = 'ok'
-        lastLoadedUid = caller.role.uid
+        entries.value[uid] = saved
+        states.value[uid] = 'ok'
         if (!useSettingsStore().refreshNoteOnOpen) return
       }
     }
 
-    state.value = 'loading'
-    errorMsg.value = ''
+    const caller = callerForUid(uid)
+    if (!caller) {
+      states.value[uid] = 'idle'
+      return
+    }
+
+    states.value[uid] = 'loading'
+    errors.value[uid] = ''
     try {
       const fresh = await getDailyNote(caller)
-      note.value = fresh
-      fetchedAt.value = Date.now()
-      state.value = 'ok'
-      lastLoadedUid = caller.role.uid
-      writePersisted(caller.role.uid, { note: fresh, fetchedAt: fetchedAt.value })
+      entries.value[uid] = { note: fresh, fetchedAt: Date.now() }
+      states.value[uid] = 'ok'
+      writePersisted(uid, entries.value[uid])
     } catch (err) {
       if (err instanceof MiHoYoApiError && err.retcode === RETCODE.RISK_VERIFY) {
-        state.value = 'risk'
+        states.value[uid] = 'risk'
         return
       }
-      state.value = note.value ? 'ok' : 'error'
-      errorMsg.value = err instanceof Error ? err.message : String(err)
+      states.value[uid] = entries.value[uid] ? 'ok' : 'error'
+      errors.value[uid] = err instanceof Error ? err.message : String(err)
+    }
+  }
+
+  /** 当前角色加载(单角色消费方兼容入口) */
+  async function load(force = false): Promise<void> {
+    await loadUid(currentUid.value, force)
+  }
+
+  /** 串行批量刷新(一键刷新;间隔防风控) */
+  async function refreshSerially(uids: string[]): Promise<void> {
+    for (const uid of uids) {
+      await loadUid(uid, true)
+      await new Promise((r) => setTimeout(r, SERIAL_REFRESH_GAP_MS))
     }
   }
 
@@ -127,9 +162,24 @@ export const useNotesStore = defineStore('notes', () => {
           timer = window.setInterval(() => void load(true), ms)
         }
       },
-      { immediate: true }
+      { immediate: true },
     )
   }
 
-  return { state, errorMsg, note, fetchedAt, load, setupAutoRefresh }
+  return {
+    entries,
+    states,
+    errors,
+    note,
+    fetchedAt,
+    state,
+    errorMsg,
+    entryOf,
+    stateOf,
+    errorOf,
+    load,
+    loadUid,
+    refreshSerially,
+    setupAutoRefresh,
+  }
 })
