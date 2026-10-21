@@ -81,11 +81,11 @@ async function confirmDelete(): Promise<void> {
         还没有账号,点击右上角「添加账号」开始
       </div>
 
-      <ul v-else class="flex flex-wrap gap-3">
+      <ul v-else class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] gap-3">
         <li
           v-for="user in accounts.users"
           :key="user.id"
-          class="flex w-90 flex-col gap-3 rounded-xl border p-4 transition-colors"
+          class="flex flex-col gap-3 rounded-xl border p-4 transition-colors"
           :class="user.id === accounts.currentUserId ? 'border-primary bg-primary-soft/30' : 'border-line bg-surface'"
         >
           <div class="flex items-center gap-3">

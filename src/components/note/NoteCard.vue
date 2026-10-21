@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { SButton, SCard, SProgress } from '@/components/ui'
 import { openSignWindow } from '@/components/sign/signWindow'
 import { useAccountsStore, type UserRole } from '@/stores/accounts'
@@ -72,17 +72,6 @@ const fetchedAtText = computed(() =>
         minute: '2-digit',
       })}`
     : ''
-)
-
-watch(
-  uid,
-  (value) => {
-    if (value) {
-      void notes.loadUid(value)
-      void sign.loadUid(value)
-    }
-  },
-  { immediate: true }
 )
 
 /** 便笺内快捷签到;风控则转入日历窗口处理 */

@@ -1,56 +1,43 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { SButton, SCard } from '@/components/ui'
 import NoteCard from '@/components/note/NoteCard.vue'
-import { useAccountsStore, type MihoyoUser } from '@/stores/accounts'
+import { useAccountsStore } from '@/stores/accounts'
 import { useNotesStore } from '@/stores/notes'
+import { useSignStore } from '@/stores/sign'
 
 const accounts = useAccountsStore()
 const notes = useNotesStore()
+const sign = useSignStore()
 
-/** 展开的非当前账号 id 集合(当前账号默认展开) */
-const expanded = ref<Set<string>>(new Set())
 const refreshing = ref(false)
 
-/** 参与展示的卡片:当前账号全部角色 + 已展开的其他账号角色,单一横向流 */
-const visibleCards = computed(() => {
-  const cards: { uid: string }[] = []
-  const ordered = [...accounts.users].sort((a, b) =>
+/** 账号排序:当前账号在前;全部角色的便笺卡直接平铺(无折叠) */
+const orderedUsers = computed(() => {
+  return [...accounts.users].sort((a, b) =>
     a.id === accounts.currentUserId ? -1 : b.id === accounts.currentUserId ? 1 : 0
   )
-  for (const user of ordered) {
-    if (user.id === accounts.currentUserId || expanded.value.has(user.id)) {
-      for (const role of user.roles) cards.push({ uid: role.uid })
-    }
-  }
-  return cards
 })
 
-/** 未展开的其他账号(以芯片行形式提供入口) */
-const collapsedUsers = computed<MihoyoUser[]>(() =>
-  accounts.users.filter((u) => u.id !== accounts.currentUserId && !expanded.value.has(u.id))
-)
+const allCards = computed(() => orderedUsers.value.flatMap((user) => user.roles.map((role) => ({ uid: role.uid }))))
 
-/** 展开/收起非当前账号;首次展开按需拉取其角色便笺(串行,仅拉缺失) */
-async function toggleExpand(user: MihoyoUser): Promise<void> {
-  const next = new Set(expanded.value)
-  if (next.has(user.id)) {
-    next.delete(user.id)
-  } else {
-    next.add(user.id)
-  }
-  expanded.value = next
-  if (expanded.value.has(user.id)) {
-    for (const role of user.roles) {
-      void notes.loadUid(role.uid)
-      await new Promise((r) => setTimeout(r, 800))
-    }
+/** 串行预拉取全部角色的便笺与签到(间隔 400ms,防并发突发触发风控);账号变动时重跑 */
+let loadToken = 0
+async function loadAll(): Promise<void> {
+  const token = ++loadToken
+  for (const card of allCards.value) {
+    if (token !== loadToken) return
+    void notes.loadUid(card.uid)
+    void sign.loadUid(card.uid)
+    await new Promise((r) => setTimeout(r, 400))
   }
 }
 
-/** 一键刷新:所有已展示角色(串行防风控) */
+watch(allCards, () => void loadAll(), { immediate: true })
+
+/** 一键刷新:全部角色(串行防风控) */
 async function refreshAll(): Promise<void> {
-  const uids = visibleCards.value.map((c) => c.uid)
+  const uids = allCards.value.map((c) => c.uid)
   if (uids.length === 0) return
   refreshing.value = true
   try {
@@ -71,36 +58,11 @@ async function refreshAll(): Promise<void> {
       在左侧头像菜单中添加米游社账号后,可在此查看全部角色的实时便笺
     </div>
 
-    <template v-else>
-      <!-- 未展开账号芯片入口 -->
-      <div v-if="collapsedUsers.length > 0" class="mb-3 flex flex-wrap gap-2">
-        <button
-          v-for="user in collapsedUsers"
-          :key="user.id"
-          class="flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-ink transition-colors hover:border-primary"
-          @click="toggleExpand(user)"
-        >
-          <img
-            v-if="user.avatarUrl"
-            :src="user.avatarUrl"
-            class="h-4 w-4 rounded-full object-cover"
-            alt="avatar"
-            referrerpolicy="no-referrer"
-          />
-          {{ user.nickname || user.aid }} · {{ user.roles.length }} 角色
-          <svg viewBox="0 0 24 24" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 5v14m-6-6 6 6 6-6" />
-          </svg>
-        </button>
-      </div>
+    <div v-else-if="allCards.length === 0" class="py-6 text-center text-xs text-ink-2">已添加的账号暂无原神角色</div>
 
-      <!-- 全部已展开角色的便笺卡:固定宽度横向 flow(最大化窗口多列铺开) -->
-      <div v-if="visibleCards.length > 0" class="flex flex-wrap gap-4">
-        <div v-for="card in visibleCards" :key="card.uid" class="w-90">
-          <NoteCard :uid="card.uid" />
-        </div>
-      </div>
-      <p v-else class="py-6 text-center text-xs text-ink-2">当前账号暂无原神角色</p>
-    </template>
+    <!-- 全部角色卡片:自适应多列,不足整行时均分宽度 -->
+    <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] gap-4">
+      <NoteCard v-for="card in allCards" :key="card.uid" :uid="card.uid" />
+    </div>
   </SCard>
 </template>
