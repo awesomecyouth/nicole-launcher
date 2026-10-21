@@ -46,13 +46,22 @@ const iconHref = computed(() => {
   return new URL(`../assets/nicole/nicole-${index}.png`, import.meta.url).href
 })
 const refreshIcon = () => {
-  const total = otherLogo ? otherLogo.images.length : 6
-  if (total < 2) return
-  let newIndex = Math.floor(Math.random() * total)
-  while (newIndex === iconIndexRef.value) {
-    newIndex = Math.floor(Math.random() * total)
+  if (otherLogo) {
+    // other 系列索引从 0 开始;单图系列无切换
+    if (otherLogo.images.length < 2) return
+    let i = Math.floor(Math.random() * otherLogo.images.length)
+    while (i === iconIndexRef.value) {
+      i = Math.floor(Math.random() * otherLogo.images.length)
+    }
+    iconIndexRef.value = i
+    return
   }
-  iconIndexRef.value = newIndex
+  // nicole 系列文件为 nicole-00001~00006,索引从 1 开始(0 会拼出不存在的文件名)
+  let n = Math.floor(Math.random() * 6) + 1
+  while (n === iconIndexRef.value) {
+    n = Math.floor(Math.random() * 6) + 1
+  }
+  iconIndexRef.value = n
 }
 
 const toggleTheme = () => {
