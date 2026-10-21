@@ -36,8 +36,8 @@ fn launch_game(exe: String, args: Vec<String>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn is_game_running() -> bool {
-    launch::is_running()
+async fn is_game_running() -> bool {
+    launch::is_running().await
 }
 
 /// 追加一行日志到系统日志目录(时间戳由前端生成,保持本地时区可读)

@@ -66,25 +66,46 @@ pub fn launch(exe: &str, args: &[String]) -> Result<(), String> {
     }
 }
 
-/// 游戏是否运行中(Windows 走 tasklist,其他平台走 pgrep)
-pub fn is_running() -> bool {
-    const NAMES: [&str; 2] = ["YuanShen", "GenshinImpact"];
-    if cfg!(target_os = "windows") {
-        let Ok(out) = std::process::Command::new("tasklist")
-            .args(["/FO", "CSV", "NH"])
-            .output()
-        else {
-            return false;
-        };
-        let list = String::from_utf8_lossy(&out.stdout).to_lowercase();
-        NAMES.iter().any(|n| list.contains(&format!("{}.exe", n.to_lowercase())))
-    } else {
-        NAMES.iter().any(|n| {
+const GAME_NAMES: [&str; 2] = ["YuanShen.exe", "GenshinImpact.exe"];
+
+/// 游戏是否运行中(同步实现)
+/// Windows:tasklist 带 IMAGENAME 过滤 + CREATE_NO_WINDOW(release 为 GUI 子系统,
+/// 不加该标志每次拉起控制台程序都会闪一个 cmd 窗口,且每 5s 一次造成周期卡顿)
+/// 其他平台:pgrep
+pub fn is_running_blocking() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+        GAME_NAMES.iter().any(|name| {
+            let Ok(out) = std::process::Command::new("tasklist")
+                .args(["/FI", &format!("IMAGENAME eq {name}"), "/FO", "CSV", "/NH"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output()
+            else {
+                return false;
+            };
+            // CSV 行首形如 "YuanShen.exe","1234",...;无匹配时 tasklist 输出 INFO 提示(不含 .exe)
+            String::from_utf8_lossy(&out.stdout).to_lowercase().contains(&name.to_lowercase())
+        })
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        GAME_NAMES.iter().any(|name| {
+            let process = name.trim_end_matches(".exe");
             std::process::Command::new("pgrep")
-                .args(["-x", n])
+                .args(["-x", process])
                 .status()
                 .map(|s| s.success())
                 .unwrap_or(false)
         })
     }
+}
+
+/// 异步包装:进程枚举有 IO 开销,移出命令执行线程,避免监控轮询(5s)造成 UI 卡顿
+pub async fn is_running() -> bool {
+    tauri::async_runtime::spawn_blocking(is_running_blocking)
+        .await
+        .unwrap_or(false)
 }
