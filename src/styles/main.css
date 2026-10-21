@@ -8,6 +8,7 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-app-region: no-drag;
+  -webkit-user-drag: none;
 }
 
 html {
