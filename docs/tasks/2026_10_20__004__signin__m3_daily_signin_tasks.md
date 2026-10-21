@@ -2,7 +2,7 @@
 
 > 依赖计划:`docs/plans/2026_10_20__001__phase1__development_plan.md`(§5.4、§6.1、§6.2、§6.4)
 > 前置任务:`docs/tasks/2026_10_20__002__account__m1_account_management_tasks.md`(M1 全部完成,需要当前账号/角色与 cookie_token 刷新链)
-> 总体状态:**基本完成(2026-10-20,展示链路真机验收;一键签到动作待次日未签状态实测)**
+> 总体状态:**已完成(2026-10-21,一键签到真机验收通过)**
 
 ## 任务清单
 
@@ -19,7 +19,7 @@
 - URL 格式双源核对:社区 mihoyo-api-sdk 用 `/event/luna/{game}/info`(带 game 段),交接文档用 `/event/luna/info`;curl 实测**两种均有效**,实现取无 game 段格式。
 - 头部与参考实现(SignInClient/Oversea)对齐:国服 BBS 预设 + CookieToken + `x-rpc-signgame: hk4e`(+ device_fp),info/sign 加 Gen1/LK2 DS;国际服仅 Cookie 与 Accept(无 x-rpc 公共头、无 DS)。
 - Gen1 签名不含 body/query,info(GET)与 sign(POST)共用 `dsGen1('LK2')`。
-- 真机验收记录:info + home 拉取正常,月历渲染、已领高亮、当日定位正确;当日已在官方签过 → 按钮正确禁用(幂等,以服务端 is_sign 为准)。**一键签到动作(未签→sign→高亮推进)待次日未签状态时补验**;-5003 优雅路径同理。
+- 真机验收记录:info + home 拉取正常,月历渲染、已领高亮、当日定位正确;当日已在官方签过 → 按钮正确禁用(幂等,以服务端 is_sign 为准)。**一键签到动作已于 2026-10-21 真机验收通过**(未签 → 点击 → 月历推进、状态翻转);同日修复成功判定(retcode==0 即成功,`data.success` 不可靠),此前"签到未成功(risk_code=0)"为误报、服务端实际已签。
 - 签到状态 5 分钟短缓存(`stores/sign.ts` lastLoadedUid/lastLoadedAt),切换角色自动重拉。
 
 ## 实现要点
