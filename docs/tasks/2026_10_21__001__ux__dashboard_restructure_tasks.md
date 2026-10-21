@@ -2,18 +2,28 @@
 
 > 依赖计划:`docs/plans/2026_10_21__001__ux__dashboard_restructure_plan.md`
 > 前置任务:M0-M4 全部完成(`docs/tasks/2026_10_20__001~005`)
-> 总体状态:**未开始**
+> 总体状态:**已完成(2026-10-21,含用户 7 项反馈调整,mac 全量人工验收;Windows 启动按钮待真机)**
 
 ## 任务清单
 
 | 编号 | 任务 | 状态 |
 |------|------|------|
-| D-T1 | `stores/launcher.ts`:应用级游戏进程监控(`isGameRunning` 状态 + 单一 5s 轮询定时器,应用启动即开;附带运行起点时间供展示运行时长) | ⬜ 未开始 |
-| D-T2 | `stores/notes.ts` 多角色化:数据改为 `Map<uid, {note, fetchedAt, state, errorMsg}>`(保留按 uid 磁盘持久化与倒计时基准);多角色刷新**串行 + 1-2s 间隔**(防 1034 放大) | ⬜ 未开始 |
-| D-T3 | `AccountSwitcher` 全局组件:Dashboard 顶部常驻,头像+昵称,下拉列全部账号(切换 setCurrent)/当前账号角色组(preferredUid)/「管理账号」展开内嵌管理面板(添加向导/刷新/删除,复用现 Accounts 页能力) | ⬜ 未开始 |
-| D-T4 | `LaunchButton` 全局组件(仅 Windows 渲染):消费 launcher store(运行中禁用/退出恢复),点击走现 launch 流(换票→config 写回→ShellExecute→等待进程);路径探测/选择入下拉;启动参数卡迁至 Settings 页 | ⬜ 未开始 |
-| D-T5 | `NoteBoard` 便笺总览:当前账号全部角色逐卡展示(复用 NoteCard 核心块),其他账号折叠为摘要行(头像+昵称+树脂/派遣一行),一键刷新(串行 force) | ⬜ 未开始 |
-| D-T6 | 路由与页面收敛:移除 `/accounts`、`/launcher` 路由与页面文件,侧边栏仅 Dashboard / Settings;全局清理死引用 | ⬜ 未开始 |
+| D-T1 | `stores/launcher.ts`:应用级游戏进程监控(`isGameRunning` 状态 + 单一 5s 轮询定时器,应用启动即开;附带运行起点时间供展示运行时长) | ✅ 已完成 |
+| D-T2 | `stores/notes.ts` 多角色化:数据改为 `Map<uid, {note, fetchedAt, state, errorMsg}>`(保留按 uid 磁盘持久化与倒计时基准);多角色刷新**串行 + 1-2s 间隔**(防 1034 放大) | ✅ 已完成 |
+| D-T3 | `AccountSwitcher` 全局组件:Dashboard 顶部常驻,头像+昵称,下拉列全部账号(切换 setCurrent)/当前账号角色组(preferredUid)/「管理账号」展开内嵌管理面板(添加向导/刷新/删除,复用现 Accounts 页能力) | ✅ 已完成(后按用户反馈改为侧边栏用户入口+弹出菜单) |
+| D-T4 | `LaunchButton` 全局组件(仅 Windows 渲染):消费 launcher store(运行中禁用/退出恢复),点击走现 launch 流(换票→config 写回→ShellExecute→等待进程);路径探测/选择入下拉;启动参数卡迁至 Settings 页 | ✅ 已完成(Windows 真机待验) |
+| D-T5 | `NoteBoard` 便笺总览:当前账号全部角色逐卡展示(复用 NoteCard 核心块),其他账号折叠为摘要行(头像+昵称+树脂/派遣一行),一键刷新(串行 force) | ✅ 已完成(后按反馈改为全账号单一横向 flex-wrap 流) |
+| D-T6 | 路由与页面收敛:移除 `/accounts`、`/launcher` 路由与页面文件,侧边栏仅 Dashboard / Settings;全局清理死引用 | ✅ 已完成(后按用户反馈恢复 /accounts 为低频管理页,含复制 Cookie) |
+
+## 用户反馈调整轮(2026-10-21,7 项)
+
+1. 派遣头像 2px 溢出换行 → `flex-nowrap gap-2`。
+2. 日历图标纵向拉伸 → `object-contain`。
+3. 用户切换移至侧边栏(Settings 之上)弹出菜单(参考 Snap.Hutao 截图,保留自有配色)。
+4. 恢复 Accounts 页:低频集中管理(刷新/复制完整 7 键 Cookie/删除),无设为当前;切换菜单跳转该页。
+5. 签到集成进便笺卡(状态行 + 快捷签到按钮),点击行打开签到日例子窗口(600×700,自然高度平铺)。
+6. 主题切换三态(日间/跟随系统/夜间)移至侧边栏底部分段控件。
+7. **子窗口零网络架构(重要)**:签到/极验子窗口不再自行发起 plugin:http——多 webview 下子窗口请求会触发 `The resource id is invalid`(每 webview 独立资源表的路由怪癖,且子窗口 main.ts 的隐藏网络活动也会污染主窗口日志)。方案:main.ts 对裸路由跳过全部 store 初始化;签到窗口经跨窗口 tauri event 桥(sign:req/sign:act → sign:data)由主窗口代理。注意:**HMR 不会送达子窗口,调样式需关窗重开**。
 
 ## 实施约束
 
