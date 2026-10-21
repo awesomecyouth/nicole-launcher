@@ -13,8 +13,6 @@ import { useSettingsStore } from './settings'
 
 export type NoteState = 'idle' | 'loading' | 'ok' | 'risk' | 'error'
 
-const CACHE_TTL_MS = 5 * 60 * 1000
-
 export const useNotesStore = defineStore('notes', () => {
   const state = ref<NoteState>('idle')
   const errorMsg = ref('')
@@ -23,7 +21,6 @@ export const useNotesStore = defineStore('notes', () => {
   const fetchedAt = ref(0)
 
   let lastLoadedUid = ''
-  let lastLoadedAt = 0
   let timer: number | undefined
 
   function callerFor(): NoteCaller | null {
@@ -40,14 +37,17 @@ export const useNotesStore = defineStore('notes', () => {
     }
   }
 
-  /** 拉取便笺;同角色 5 分钟内不重拉;1034 → 风控态;失败不清空已有数据 */
+  /**
+   * 拉取便笺:自动路径(进入页面)仅在该角色尚无数据时请求,已有数据直接复用
+   * (避免每次到首页都刷新);手动刷新与定时刷新走 force。1034 → 风控态;失败不清空已有数据
+   */
   async function load(force = false): Promise<void> {
     const caller = callerFor()
     if (!caller) {
       state.value = 'idle'
       return
     }
-    if (!force && caller.role.uid === lastLoadedUid && Date.now() - lastLoadedAt < CACHE_TTL_MS) return
+    if (!force && caller.role.uid === lastLoadedUid && note.value) return
 
     state.value = 'loading'
     errorMsg.value = ''
@@ -56,7 +56,6 @@ export const useNotesStore = defineStore('notes', () => {
       fetchedAt.value = Date.now()
       state.value = 'ok'
       lastLoadedUid = caller.role.uid
-      lastLoadedAt = Date.now()
     } catch (err) {
       if (err instanceof MiHoYoApiError && err.retcode === RETCODE.RISK_VERIFY) {
         state.value = 'risk'

@@ -105,9 +105,9 @@ function openOfficial(): void {
           :key="i"
           class="flex flex-col items-center gap-1 rounded-lg border p-1.5 text-center"
           :class="i < sign.totalSignDay ? 'border-primary bg-primary-soft/50' : 'border-line bg-surface'"
+          :title="`${award.name} x${award.cnt}`"
         >
           <img :src="award.icon" class="h-9 w-9" :alt="award.name" referrerpolicy="no-referrer" />
-          <span class="w-full truncate text-xs text-ink" :title="award.name">{{ award.name }}</span>
           <span class="text-[10px] text-ink-2">x{{ award.cnt }}</span>
           <span class="text-[10px]" :class="i === todayIndex ? 'font-bold text-primary-strong' : 'text-ink-2'">
             {{ i + 1 }}

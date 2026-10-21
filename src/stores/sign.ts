@@ -78,13 +78,9 @@ export const useSignStore = defineStore('sign', () => {
     errorMsg.value = ''
     try {
       const result = await doSignReward(callerFor(user, role))
+      // 成功判定与参考实现一致:retcode==0(未抛错)即已签;success 字段不可靠,不作依据
       if (result.gt || result.challenge) {
         state.value = 'risk'
-        return
-      }
-      if (result.success !== 1) {
-        state.value = 'error'
-        errorMsg.value = `签到未成功(risk_code=${result.riskCode})`
         return
       }
       await load(true)

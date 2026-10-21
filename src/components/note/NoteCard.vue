@@ -73,6 +73,17 @@ watch(
       </div>
       <p v-else-if="notes.state === 'error'" class="text-sm text-danger">{{ notes.errorMsg || '便笺获取失败' }}</p>
 
+      <!-- 骨架屏:首次加载(尚无数据)时占位 -->
+      <div v-if="notes.state === 'loading' && !notes.note" class="flex flex-col gap-4">
+        <div class="h-5 w-44 animate-pulse rounded bg-surface-2"></div>
+        <div class="h-2.5 w-full animate-pulse rounded-full bg-surface-2"></div>
+        <div class="flex gap-3">
+          <div v-for="i in 5" :key="i" class="h-12 w-12 animate-pulse rounded-lg bg-surface-2"></div>
+        </div>
+        <div class="h-4 w-3/4 animate-pulse rounded bg-surface-2"></div>
+        <div class="h-4 w-2/3 animate-pulse rounded bg-surface-2"></div>
+      </div>
+
       <div v-if="notes.note" class="flex flex-col gap-4">
         <!-- 树脂(最醒目位) -->
         <div>

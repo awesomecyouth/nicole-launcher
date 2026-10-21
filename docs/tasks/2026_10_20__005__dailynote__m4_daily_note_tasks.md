@@ -23,6 +23,16 @@
 - 倒计时实现:store 只存 recoveryTime 秒数 + fetchedAt 基准,UI 每分钟本地重渲染,不发请求;刷新失败静默保留旧数据。
 - 国际服路径(OSX4/hoyolab 域)构建完成但未真机验证(无国际服账号)。
 
+## 极验验证补全(2026-10-20,用户决策:仅手动滑块,不接第三方打码)
+
+- 1034 触发时自动弹子窗口(`/geetest` 裸路由 + `WebviewWindow`),加载极验官方 `gt.0.5.2.js`(`product:'bind'` 自动弹滑块),完成结果经 tauri event 回传主窗口;用户关闭窗口视为取消。
+- card wapi 链路(与 Snap.Hutao CardClient/GeetestService 逐字段对齐,三个易错点全部实测踩过):
+  1. 端点为 `/game_record/app/card/wapi/{createVerification,verifyVerification}`(注意 **`/app` 段**,参考 ApiEndpoints.csv);
+  2. `x-rpc-challenge_path` 传**完整 URL** 而非裸路径;`x-rpc-challenge_game: 2`(原神);challenge 按请求各自注册(index/dailyNote 独立处理,不可共用);
+  3. verifyVerification 的 body 为 `geetest_challenge / geetest_validate / geetest_seccode`(seccode = `"{validate}|jordan"`)——字段名不是 challenge/validate,错了会报 `-1 拼图已过期`。
+- 成功后原请求带 `x-rpc-challenge: <新 challenge>` 重试(DS 重签)。全链路每步写 nicole.log(`risk:`/`note` 前缀)。
+- 真机验证:真实 1034 触发 → 滑块 → 便笺加载成功,后续刷新不再弹窗。
+
 ## 实现要点
 
 ### M4-T1 API 细节

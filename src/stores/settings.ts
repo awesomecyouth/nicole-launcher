@@ -5,6 +5,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { load, type Store } from '@tauri-apps/plugin-store'
+import { invoke } from '@tauri-apps/api/core'
 import { randomDeviceId53 } from '@/api/headers'
 import type { LaunchArgOptions } from '@/api/auth-ticket'
 
@@ -34,6 +35,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const launchOptions = ref<LaunchArgOptions>({ ...defaultLaunchOptions })
   /** 已校验的游戏 exe 路径(空 = 未设置) */
   const gameExe = ref('')
+  /** 是否 Windows(启动游戏等功能仅 Windows 可用,默认 true 避免初始化期闪烁) */
+  const isWindows = ref(true)
   const isDark = ref(false)
   let store: Store | null = null
 
@@ -69,6 +72,9 @@ export const useSettingsStore = defineStore('settings', () => {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (theme.value === 'auto') applyTheme()
     })
+    invoke<boolean>('is_windows')
+      .then((value) => (isWindows.value = value))
+      .catch(() => {})
   }
 
   async function setTheme(mode: ThemeMode): Promise<void> {
@@ -99,6 +105,7 @@ export const useSettingsStore = defineStore('settings', () => {
     noteRefreshInterval,
     launchOptions,
     gameExe,
+    isWindows,
     isDark,
     init,
     setTheme,

@@ -27,9 +27,12 @@ const statusText = ref('')
 const errorMsg = ref('')
 /** 启动后的进程检测定时器(游戏不允许双开,须持续检测直到进程出现;组件卸载时清理) */
 let runningPoll: number | undefined
+/** 常驻进程监控:游戏运行中禁用启动按钮,退出后自动恢复(5s 粒度) */
+let processMonitor: number | undefined
 
 onUnmounted(() => {
   if (runningPoll !== undefined) window.clearInterval(runningPoll)
+  if (processMonitor !== undefined) window.clearInterval(processMonitor)
 })
 
 const serverLabel = computed(() => ({ cn: '国服官服', bili: 'B 服', os: '国际服' })[gameInfo.value?.server ?? 'cn'])
@@ -57,6 +60,12 @@ onMounted(async () => {
     }
   }
   running.value = await invoke<boolean>('is_game_running')
+  processMonitor = window.setInterval(() => {
+    void invoke<boolean>('is_game_running').then((alive) => {
+      // 游戏退出后按钮自动恢复可用;启动等待循环进行中时不覆盖其状态
+      if (runningPoll === undefined) running.value = alive
+    })
+  }, 5000)
 })
 
 async function detect(): Promise<void> {
