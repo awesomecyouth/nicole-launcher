@@ -28,6 +28,16 @@ const sizeClass = computed(
       lg: 'h-11 px-6 text-base',
     })[props.size]
 )
+
+/** spinner 跟随变体取色:深色底(primary/danger)用白,ghost 透明底用文字色 */
+const spinnerClass = computed(
+  () =>
+    ({
+      primary: 'border-white/40 border-t-white',
+      ghost: 'border-ink/30 border-t-ink',
+      danger: 'border-white/40 border-t-white',
+    })[props.variant]
+)
 </script>
 
 <template>
@@ -38,7 +48,8 @@ const sizeClass = computed(
   >
     <span
       v-if="loading"
-      class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white"
+      class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2"
+      :class="spinnerClass"
     />
     <slot />
   </button>
