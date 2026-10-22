@@ -19,3 +19,27 @@ body {
   background-color: var(--nl-bg);
   color: var(--nl-text);
 }
+
+/* 主题化滚动条:WKWebView/WebView2 均为 WebKit 系内核,::-webkit-scrollbar 原生支持,
+   无需 JS 浮层库;颜色走主题变量,日夜模式自动适配 */
+* {
+  scrollbar-width: thin; /* Firefox 标准属性(纯浏览器 dev 兜底) */
+  scrollbar-color: var(--nl-border) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--nl-border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nl-primary);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
