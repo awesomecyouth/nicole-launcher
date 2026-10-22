@@ -70,6 +70,14 @@ fn read_text_file(path: String) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // 单实例:须最先注册;二次启动时聚焦已有主窗口后新进程自行退出
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            use tauri::Manager;
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.unminimize();
+                let _ = win.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())

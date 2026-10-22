@@ -25,6 +25,8 @@ tauri-plugin-opener = "2"
 tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
 tauri-plugin-store = "2"
 tauri-plugin-dialog = "2"
+# 单实例限制:二次启动聚焦已有窗口(Windows 双击 exe 无系统级去重,防并发写坏数据)
+tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
