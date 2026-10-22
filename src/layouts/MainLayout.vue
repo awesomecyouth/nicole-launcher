@@ -48,7 +48,16 @@ function gotoAccounts(): void {
   void router.replace({ name: 'accounts' })
 }
 
+/** 启动图标按钮的悬停提示(状态/错误的唯一展示位) */
+const launchTooltip = computed(() => {
+  if (launcher.errorMsg) return `启动失败:${launcher.errorMsg}`
+  if (launcher.isGameRunning) return '游戏运行中'
+  if (launcher.launchState === 'busy') return launcher.statusText || '正在启动…'
+  return '启动游戏(当前账号免登;路径与参数在 Settings 配置)'
+})
+
 const refreshingUser = ref(false)
+
 async function refreshCurrent(): Promise<void> {
   if (!accounts.currentUserId || refreshingUser.value) return
   refreshingUser.value = true
@@ -211,32 +220,9 @@ const refreshIcon = () => {
           </div>
         </div>
 
-        <!-- 启动游戏(工具主职责,全局可见;仅 Windows;路径与参数在 Settings 配置) -->
-        <div v-if="settings.isWindows" class="flex flex-col gap-1">
-          <button
-            class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-bold text-white shadow-lg shadow-primary/30 transition-colors hover:bg-primary-strong disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="launcher.isGameRunning || launcher.launchState === 'busy'"
-            @click="launcher.launch()"
-          >
-            <svg v-if="launcher.launchState !== 'busy'" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-              <path d="M8 5.14v13.72L19 12 8 5.14Z" />
-            </svg>
-            <span
-              v-else
-              class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
-            />
-            {{ launcher.isGameRunning ? '游戏运行中' : '启 动 游 戏' }}
-          </button>
-          <p v-if="launcher.statusText" class="min-h-4 px-1 text-center text-xs text-ink-2">
-            {{ launcher.statusText }}
-          </p>
-          <p v-else-if="launcher.errorMsg" class="min-h-4 px-1 text-center text-xs text-danger">
-            {{ launcher.errorMsg }}
-          </p>
-        </div>
-
-        <!-- 用户入口(位于 Settings 之上) -->
-        <button
+        <!-- 用户入口(位于 Settings 之上);启动游戏以 ghost 图标并入本行(仅 Windows):
+             空闲=播放图标 / 启动中&运行中=loading;状态经 tooltip 展示,错误变 danger 色 -->
+        <div
           class="flex w-full cursor-pointer items-center gap-2 rounded-lg p-2.5 text-ink transition-colors hover:bg-surface-2"
           @click="userMenuOpen = !userMenuOpen"
         >
@@ -256,9 +242,33 @@ const refreshIcon = () => {
           <span class="min-w-0 flex-1 truncate text-left text-sm font-medium">
             {{ accounts.currentUser?.nickname || '未登录' }}
           </span>
+
+          <!-- 启动游戏 ghost 图标按钮 -->
+          <button
+            v-if="settings.isWindows"
+            class="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            :class="
+              launcher.errorMsg
+                ? 'border-danger/50 text-danger hover:bg-danger/10'
+                : 'border-line text-ink-2 hover:border-primary hover:text-primary-strong'
+            "
+            :disabled="launcher.isGameRunning || launcher.launchState === 'busy'"
+            :title="launchTooltip"
+            @click.stop="launcher.launch()"
+          >
+            <span
+              v-if="launcher.launchState === 'busy' || launcher.isGameRunning"
+              class="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2"
+              :class="launcher.errorMsg ? 'border-danger/40 border-t-danger' : 'border-ink-2/40 border-t-ink-2'"
+            />
+            <svg v-else viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor">
+              <path d="M8 5.14v13.72L19 12 8 5.14Z" />
+            </svg>
+          </button>
+
           <svg
             viewBox="0 0 24 24"
-            class="h-3.5 w-3.5 text-ink-2 transition-transform"
+            class="h-3.5 w-3.5 shrink-0 text-ink-2 transition-transform"
             fill="none"
             stroke="currentColor"
             stroke-width="2"
@@ -266,7 +276,7 @@ const refreshIcon = () => {
           >
             <path d="m18 15-6-6-6 6" />
           </svg>
-        </button>
+        </div>
 
         <!-- Settings(用户入口之下,末位菜单) -->
         <div
