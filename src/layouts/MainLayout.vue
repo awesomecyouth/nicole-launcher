@@ -14,6 +14,7 @@ const launcher = useLauncherStore()
 const menus = [
   { name: 'dashboard', label: 'Dashboard' },
   { name: 'accounts', label: 'Accounts' },
+  { name: 'gacha', label: 'Gacha' },
 ]
 
 const activeMenu = computed(() => (route.name as string) ?? 'dashboard')

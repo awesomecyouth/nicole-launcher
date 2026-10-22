@@ -14,6 +14,11 @@ const routes = [
     component: () => import('@/pages/accounts/index.vue'),
   },
   {
+    name: 'gacha',
+    path: '/gacha',
+    component: () => import('@/pages/gacha/index.vue'),
+  },
+  {
     name: 'settings',
     path: '/settings',
     component: () => import('@/pages/settings/index.vue'),

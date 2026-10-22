@@ -112,7 +112,7 @@ const PAGE_GAP_MS = 300
 export async function fetchGachaItems(
   caller: GachaCaller,
   stopAtId = '0',
-  onProgress?: (loaded: number, gachaType: number) => void,
+  onProgress?: (loaded: number, gachaType: number) => void
 ): Promise<GachaItem[]> {
   if (caller.isOversea) {
     throw new Error('国际服暂不支持直接获取祈愿记录(缺 OSLK2 盐),可使用 UIGF 导入(后续增强)')

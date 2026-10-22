@@ -55,6 +55,12 @@ fn append_log(app: tauri::AppHandle, line: String) -> Result<(), String> {
     file.write_all(format!("{line}\n").as_bytes()).map_err(|e| e.to_string())
 }
 
+/// 写文本文件(dialog save 选定路径;UIGF 导出等一次性写出场景)
+#[tauri::command]
+fn save_text_file(path: String, contents: String) -> Result<(), String> {
+    std::fs::write(&path, contents).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -69,7 +75,8 @@ pub fn run() {
             set_game_channels,
             launch_game,
             is_game_running,
-            append_log
+            append_log,
+            save_text_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
