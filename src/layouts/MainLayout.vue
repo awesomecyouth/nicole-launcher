@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useSettingsStore, type ThemeMode } from '@/stores/settings'
+import { useSettingsStore } from '@/stores/settings'
 import { useAccountsStore } from '@/stores/accounts'
+import { useLauncherStore } from '@/stores/launcher'
 
 const router = useRouter()
 const route = useRoute()
 const settings = useSettingsStore()
 const accounts = useAccountsStore()
+const launcher = useLauncherStore()
 
 const menus = [
   { name: 'dashboard', label: 'Dashboard' },
@@ -58,17 +60,6 @@ async function refreshCurrent(): Promise<void> {
     refreshingUser.value = false
   }
 }
-
-// ---------- 主题三态(日间 / 跟随系统 / 夜间) ----------
-const themeModes: { value: ThemeMode; label: string; icon: string }[] = [
-  {
-    value: 'light',
-    label: '日间',
-    icon: 'M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
-  },
-  { value: 'auto', label: '跟随系统', icon: 'M4 5h16v11H4zM8 20h8' },
-  { value: 'dark', label: '夜间', icon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z' },
-]
 
 // ---------- Logo 随机与点击切换机制(规范第 6.8 条,务必保留) ----------
 // 彩蛋:1% 概率启用 other 系列(角色固定,点击在该系列图间切换;单图系列点击无动作)
@@ -220,6 +211,30 @@ const refreshIcon = () => {
           </div>
         </div>
 
+        <!-- 启动游戏(工具主职责,全局可见;仅 Windows;路径与参数在 Settings 配置) -->
+        <div v-if="settings.isWindows" class="flex flex-col gap-1">
+          <button
+            class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary py-3 text-base font-bold text-white shadow-lg shadow-primary/30 transition-colors hover:bg-primary-strong disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="launcher.isGameRunning || launcher.launchState === 'busy'"
+            @click="launcher.launch()"
+          >
+            <svg v-if="launcher.launchState !== 'busy'" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
+              <path d="M8 5.14v13.72L19 12 8 5.14Z" />
+            </svg>
+            <span
+              v-else
+              class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+            />
+            {{ launcher.isGameRunning ? '游戏运行中' : '启 动 游 戏' }}
+          </button>
+          <p v-if="launcher.statusText" class="min-h-4 px-1 text-center text-xs text-ink-2">
+            {{ launcher.statusText }}
+          </p>
+          <p v-else-if="launcher.errorMsg" class="min-h-4 px-1 text-center text-xs text-danger">
+            {{ launcher.errorMsg }}
+          </p>
+        </div>
+
         <!-- 用户入口(位于 Settings 之上) -->
         <button
           class="flex w-full cursor-pointer items-center gap-2 rounded-lg p-2.5 text-ink transition-colors hover:bg-surface-2"
@@ -260,27 +275,6 @@ const refreshIcon = () => {
           @click="onMenuClick('settings')"
         >
           Settings
-        </div>
-
-        <!-- 主题三态 -->
-        <div class="flex items-center gap-1 rounded-lg bg-surface-2 p-1">
-          <button
-            v-for="mode in themeModes"
-            :key="mode.value"
-            class="flex h-7 flex-1 cursor-pointer items-center justify-center rounded-md transition-colors"
-            :class="
-              settings.theme === mode.value ? 'bg-surface text-primary-strong shadow-sm' : 'text-ink-2 hover:text-ink'
-            "
-            :title="mode.label"
-            @click="settings.setTheme(mode.value)"
-          >
-            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
-              <path :d="mode.icon" />
-              <template v-if="mode.value === 'light'">
-                <circle cx="12" cy="12" r="4" />
-              </template>
-            </svg>
-          </button>
         </div>
       </div>
     </aside>

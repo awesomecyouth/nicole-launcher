@@ -46,7 +46,7 @@ export const useLauncherStore = defineStore('launcher', () => {
         .then((info) => (gameInfo.value = info))
         .catch((err) => (errorMsg.value = `已保存的游戏路径失效:${err instanceof Error ? err.message : String(err)}`))
     },
-    { immediate: true },
+    { immediate: true }
   )
 
   async function detect(): Promise<void> {

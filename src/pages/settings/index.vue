@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { SButton, SCard } from '@/components/ui'
 import { useSettingsStore, type NoteRefreshInterval, type ThemeMode } from '@/stores/settings'
+import { useLauncherStore } from '@/stores/launcher'
 
 const settings = useSettingsStore()
+const launcher = useLauncherStore()
+
+const serverLabel = computed(() => ({ cn: '国服官服', bili: 'B 服', os: '国际服' })[launcher.gameInfo?.server ?? 'cn'])
 
 const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: '日间' },
@@ -67,7 +72,21 @@ const noteRefreshOptions: { value: NoteRefreshInterval; label: string }[] = [
       </p>
     </SCard>
 
-    <SCard title="启动参数">
+    <SCard v-if="settings.isWindows" title="启动游戏">
+      <template #header>
+        <div class="flex gap-2">
+          <SButton size="sm" variant="ghost" @click="launcher.detect()">重新探测</SButton>
+          <SButton size="sm" variant="ghost" @click="launcher.pickExe()">选择主程序</SButton>
+        </div>
+      </template>
+
+      <!-- 游戏路径 -->
+      <p v-if="launcher.gameInfo" class="mb-4 break-all text-xs text-ink-2" :title="launcher.gameInfo.exe">
+        [{{ serverLabel }}] {{ launcher.gameInfo.exe }}
+      </p>
+      <p v-else class="mb-4 text-xs text-ink-2">未设置游戏路径——可自动探测或手动选择;启动按钮位于侧边栏,随时可用。</p>
+
+      <!-- 启动参数(Unity 命令行,非注入) -->
       <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <label class="flex cursor-pointer items-center gap-2 text-ink">
           <input
