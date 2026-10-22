@@ -95,11 +95,11 @@ export const useGachaStore = defineStore('gacha', () => {
       })
       if (fresh.length > 0) {
         const merged = [...(entries.value[uid]?.items ?? []), ...fresh]
-        // id 升序去重
+        // id 升序去重(id 超长,BigInt 比较)
         const seen = new Set<string>()
         const items = merged
           .filter((item) => (seen.has(item.id) ? false : seen.add(item.id)))
-          .sort((a, b) => (a.id < b.id ? -1 : 1))
+          .sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1))
         entries.value[uid] = { items, updatedAt: Date.now() }
       } else if (entries.value[uid]) {
         entries.value[uid] = { ...entries.value[uid], updatedAt: Date.now() }

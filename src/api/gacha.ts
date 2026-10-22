@@ -134,8 +134,9 @@ export async function fetchGachaItems(
       }
       if (page.length === 0) break
 
-      // 增量:本页含已有记录则只取新部分并止步
-      const hitIndex = page.findIndex((item) => item.id <= stopAtId)
+      // 增量:本页含已有记录则只取新部分并止步(id 超长,BigInt 比较)
+      const stopAt = BigInt(stopAtId)
+      const hitIndex = page.findIndex((item) => BigInt(item.id) <= stopAt)
       if (hitIndex >= 0) {
         collected.push(...page.slice(0, hitIndex))
         break

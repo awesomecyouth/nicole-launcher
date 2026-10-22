@@ -12,7 +12,8 @@ const props = defineProps<{
   items: GachaItem[]
 }>()
 
-const itemsDesc = computed(() => [...props.items].sort((a, b) => (a.id > b.id ? -1 : 1)))
+/** id 最长 19 位,超出 Number 安全整数,统一 BigInt 比较 */
+const itemsDesc = computed(() => [...props.items].sort((a, b) => (BigInt(a.id) > BigInt(b.id) ? -1 : 1)))
 const visibleCount = ref(50)
 const visibleItems = computed(() => itemsDesc.value.slice(0, visibleCount.value))
 
@@ -20,8 +21,9 @@ const stats = computed(() => {
   const items = itemsDesc.value
   const five = items.filter((i) => i.rankType === 5).length
   const four = items.filter((i) => i.rankType === 4).length
+  // 距上次五星:从最新记录(index 0)向旧数,遇到五星止(此前方向写反)
   let sinceFive = 0
-  for (let i = items.length - 1; i >= 0; i--) {
+  for (let i = 0; i < items.length; i++) {
     if (items[i].rankType === 5) break
     sinceFive++
   }
