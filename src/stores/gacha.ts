@@ -137,6 +137,41 @@ export const useGachaStore = defineStore('gacha', () => {
     await persisted?.delete(`gacha:${uid}`)
   }
 
+  /**
+   * 导入 UIGF 条目:仅接受**当前账号**角色的 uid(其他账号的记录本页不可见,导入会造成
+   * "提示成功却看不到记录"的困惑;未知 uid 同理),与本地记录按 id 去重合并后持久化。
+   */
+  async function importEntries(
+    items: {
+      uid: string
+      items: GachaItem[]
+    }[]
+  ): Promise<{ imported: { uid: string; added: number }[]; skipped: string[] }> {
+    const accounts = useAccountsStore()
+    const knownUids = new Set(accounts.currentUser?.roles.map((r) => r.uid) ?? [])
+
+    const imported: { uid: string; added: number }[] = []
+    const skipped: string[] = []
+    for (const entry of items) {
+      if (!knownUids.has(entry.uid)) {
+        skipped.push(entry.uid)
+        continue
+      }
+      const local = entries.value[entry.uid]?.items ?? []
+      const before = local.length
+      const seen = new Set(local.map((i) => i.id))
+      const merged = [...local, ...entry.items.filter((i) => !seen.has(i.id))]
+      merged.sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1))
+      entries.value[entry.uid] = { items: merged, updatedAt: Date.now() }
+      states.value[entry.uid] = 'ok'
+      errors.value[entry.uid] = ''
+      await ensurePersisted()
+      await persisted?.set(`gacha:${entry.uid}`, entries.value[entry.uid]!)
+      imported.push({ uid: entry.uid, added: merged.length - before })
+    }
+    return { imported, skipped }
+  }
+
   /** 当前账号全部角色 uid(页面随全局切换消费) */
   const currentAccountUids = computed(() => useAccountsStore().currentUser?.roles.map((r) => r.uid) ?? [])
 
@@ -150,6 +185,7 @@ export const useGachaStore = defineStore('gacha', () => {
     hydrate,
     refreshUid,
     refreshCurrentAccount,
+    importEntries,
     clearUid,
   }
 })

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { SButton, SCard } from '@/components/ui'
 import { useSettingsStore, type NoteRefreshInterval, type ThemeMode } from '@/stores/settings'
 import { useLauncherStore } from '@/stores/launcher'
@@ -8,6 +9,10 @@ const settings = useSettingsStore()
 const launcher = useLauncherStore()
 
 const serverLabel = computed(() => ({ cn: '国服官服', bili: 'B 服', os: '国际服' })[launcher.gameInfo?.server ?? 'cn'])
+
+function openUigf(): void {
+  void openUrl('https://uigf.org/')
+}
 
 const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: '日间' },
@@ -173,6 +178,11 @@ const noteRefreshOptions: { value: NoteRefreshInterval; label: string }[] = [
 
     <SCard title="关于">
       <p class="text-ink-2">Nicole Launcher v0.1.0 · Tauri 2 + Vue 3</p>
+      <p class="mt-2 text-xs text-ink-2">
+        本应用支持
+        <a class="cursor-pointer text-primary-strong hover:underline" @click="openUigf">UIGF 统一可交换祈愿记录标准</a>
+        数据格式。
+      </p>
     </SCard>
   </div>
 </template>

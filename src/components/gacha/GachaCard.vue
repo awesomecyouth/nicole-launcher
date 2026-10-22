@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { SButton, SModal } from '@/components/ui'
-import { exportUigfFile } from '@/api/uigf'
+import { computed } from 'vue'
 import type { UserRole } from '@/stores/accounts'
 import { useGachaStore } from '@/stores/gacha'
 import PoolCard from '@/components/gacha/PoolCard.vue'
 
-/** 单角色祈愿卡:头部操作 + 各卡池平铺卡片(角色池合并祈愿一/二) */
+/** 单角色祈愿区:角色信息行 + 各卡池平铺卡片(角色池合并祈愿一/二);操作统一在页面级 */
 const props = defineProps<{ role: UserRole }>()
 
 const gacha = useGachaStore()
@@ -14,7 +12,6 @@ const gacha = useGachaStore()
 const uid = computed(() => props.role.uid)
 const entry = computed(() => gacha.entryOf(uid.value))
 const state = computed(() => gacha.states[uid.value] ?? 'idle')
-const errorMsg = computed(() => gacha.errors[uid.value] ?? '')
 
 /** 展示分组:角色(301+400 合并,共享保底)/ 武器 / 常驻 / 集录 / 新手;仅有记录的分组渲染 */
 const POOL_GROUPS: { label: string; types: number[] }[] = [
@@ -45,33 +42,11 @@ const updatedAtText = computed(() =>
       })
     : ''
 )
-
-const confirmClear = ref(false)
-const exporting = ref(false)
-
-async function refresh(): Promise<void> {
-  await gacha.refreshUid(uid.value)
-}
-
-async function exportFile(): Promise<void> {
-  if (!entry.value || entry.value.items.length === 0) return
-  exporting.value = true
-  try {
-    await exportUigfFile(uid.value, props.role.region, entry.value.items)
-  } finally {
-    exporting.value = false
-  }
-}
-
-async function clear(): Promise<void> {
-  confirmClear.value = false
-  await gacha.clearUid(uid.value)
-}
 </script>
 
 <template>
   <div class="flex flex-col gap-3">
-    <!-- 头部:角色信息 + 操作 -->
+    <!-- 角色信息行 -->
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-sm font-semibold text-ink">
         {{ role.nickname }} · {{ role.uid }}
@@ -79,16 +54,8 @@ async function clear(): Promise<void> {
       </span>
       <span v-if="total > 0" class="text-xs text-ink-2">共 {{ total }} 抽</span>
       <span v-if="updatedAtText" class="text-xs text-ink-2">({{ updatedAtText }})</span>
-      <span class="ml-auto flex gap-2">
-        <SButton size="sm" variant="ghost" :loading="state === 'loading'" @click="refresh">刷新</SButton>
-        <SButton size="sm" variant="ghost" :disabled="total === 0" :loading="exporting" @click="exportFile">
-          导出
-        </SButton>
-        <SButton size="sm" variant="danger" :disabled="!entry" @click="confirmClear = true">清空</SButton>
-      </span>
     </div>
 
-    <p v-if="errorMsg" class="text-xs text-danger">{{ errorMsg }}</p>
     <div v-if="state === 'loading'" class="py-4 text-center text-xs text-ink-2">
       正在拉取祈愿记录…(已获取 {{ gacha.progresses[uid] ?? 0 }} 条)
     </div>
@@ -97,15 +64,6 @@ async function clear(): Promise<void> {
     <div v-if="poolGroups.length > 0" class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] gap-3">
       <PoolCard v-for="group in poolGroups" :key="group.label" :title="group.label" :items="group.items" />
     </div>
-    <div v-else-if="state !== 'loading'" class="py-6 text-center text-xs text-ink-2">暂无记录,点击「刷新」获取</div>
-
-    <!-- 清空确认 -->
-    <SModal :model-value="confirmClear" title="清空祈愿记录" width="22rem" @update:model-value="confirmClear = false">
-      <p class="text-sm text-ink">确定清空「{{ role.nickname }} · {{ role.uid }}」的本地祈愿记录吗?可随时重新拉取。</p>
-      <div class="mt-4 flex justify-end gap-2">
-        <SButton variant="ghost" size="sm" @click="confirmClear = false">取消</SButton>
-        <SButton variant="danger" size="sm" @click="clear">清空</SButton>
-      </div>
-    </SModal>
+    <div v-else-if="state !== 'loading'" class="py-6 text-center text-xs text-ink-2">暂无记录,点击「拉取记录」获取</div>
   </div>
 </template>
