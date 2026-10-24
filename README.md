@@ -30,7 +30,11 @@
 | Windows x64 | `NicoleLauncher_v<version>_Windows_x64-setup.exe` |
 | Windows ARM64 | `NicoleLauncher_v<version>_Windows_arm64-setup.exe` |
 
-> macOS 安装包未签名 / 未公证，首次打开请右键 →「打开」，或在「系统设置 → 隐私与安全性」中允许。
+> macOS 安装包未签名 / 未公证，首次打开前需移除隔离属性（安装到哪就把路径改成哪）：
+>
+> ```bash
+> xattr -rd com.apple.quarantine /Applications/Nicole\ Launcher.app
+> ```
 
 ## 开发
 
