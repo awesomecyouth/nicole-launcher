@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { getVersion } from '@tauri-apps/api/app'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { SButton, SCard } from '@/components/ui'
 import { useSettingsStore, type NoteRefreshInterval, type ThemeMode } from '@/stores/settings'
@@ -8,11 +9,33 @@ import { useLauncherStore } from '@/stores/launcher'
 const settings = useSettingsStore()
 const launcher = useLauncherStore()
 
+/** 应用版本(取自 tauri.conf.json,发布时与 git tag 对齐) */
+const appVersion = ref('')
+onMounted(async () => {
+  try {
+    appVersion.value = await getVersion()
+  } catch {
+    appVersion.value = '0.0.0'
+  }
+})
+
 const serverLabel = computed(() => ({ cn: '国服官服', bili: 'B 服', os: '国际服' })[launcher.gameInfo?.server ?? 'cn'])
 
-function openUigf(): void {
-  void openUrl('https://uigf.org/')
-}
+/** 鸣谢项目(行为参考/规范来源/依赖框架) */
+const acknowledgements: { name: string; desc: string; url: string }[] = [
+  {
+    name: 'Snap.Hutao',
+    desc: '接口行为参考与 API 调研',
+    url: 'https://github.com/SnapHutaoRemasteringProject/Snap.Hutao.Remastered',
+  },
+  {
+    name: 'mihoyo-api-sdk',
+    desc: '米哈游接口规范交叉验证',
+    url: 'https://github.com/UIGF-org/mihoyo-api-sdk',
+  },
+  { name: 'UIGF', desc: '统一可交换祈愿记录标准', url: 'https://uigf.org/' },
+  { name: 'Tauri', desc: '应用框架', url: 'https://tauri.app/' },
+]
 
 const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: '日间' },
@@ -177,12 +200,25 @@ const noteRefreshOptions: { value: NoteRefreshInterval; label: string }[] = [
     </SCard>
 
     <SCard title="关于">
-      <p class="text-ink-2">Nicole Launcher v0.1.0 · Tauri 2 + Vue 3</p>
+      <p class="text-ink-2">Nicole Launcher v{{ appVersion || '…' }} · Tauri 2 + Vue 3</p>
       <p class="mt-2 text-xs text-ink-2">
         本应用支持
-        <a class="cursor-pointer text-primary-strong hover:underline" @click="openUigf">UIGF 统一可交换祈愿记录标准</a>
+        <a class="cursor-pointer text-primary-strong hover:underline" @click="openUrl('https://uigf.org/')">
+          UIGF 统一可交换祈愿记录标准
+        </a>
         数据格式。
       </p>
+    </SCard>
+
+    <SCard title="鸣谢">
+      <ul class="flex flex-col gap-2">
+        <li v-for="ack in acknowledgements" :key="ack.name" class="flex items-baseline gap-2 text-sm">
+          <a class="shrink-0 cursor-pointer font-medium text-primary-strong hover:underline" @click="openUrl(ack.url)">
+            {{ ack.name }}
+          </a>
+          <span class="text-xs text-ink-2">{{ ack.desc }}</span>
+        </li>
+      </ul>
     </SCard>
   </div>
 </template>

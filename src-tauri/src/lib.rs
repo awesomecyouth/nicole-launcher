@@ -79,6 +79,8 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_opener::init())
+        // 记住窗口位置与大小(关闭时自动保存,下次启动恢复)
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())

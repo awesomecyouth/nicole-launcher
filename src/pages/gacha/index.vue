@@ -11,6 +11,7 @@ const accounts = useAccountsStore()
 const gacha = useGachaStore()
 
 const roles = computed(() => accounts.currentUser?.roles ?? [])
+const isOverseaAccount = computed(() => accounts.currentUser?.isOversea ?? false)
 const refreshing = ref(false)
 
 const importing = ref(false)
@@ -122,6 +123,13 @@ async function clearAll(): Promise<void> {
       <p class="mb-3 text-xs text-ink-2">
         展示当前账号(左下角头像菜单切换)的全部角色;首次拉取为全量,之后增量合并;导入/导出均针对当前账号,UIGF v4 格式。
       </p>
+      <!-- 国际服账号:直接拉取暂不支持(缺盐),导入可用 -->
+      <div
+        v-if="isOverseaAccount"
+        class="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning"
+      >
+        当前为国际服(HoYoLAB)账号:祈愿记录直接拉取暂不支持,可通过「导入」读取 UIGF v4 文件;签到 / 便笺 / 启动游戏等其他功能不受影响。
+      </div>
       <p v-if="importSummary" class="mb-3 text-xs text-success">{{ importSummary }}</p>
       <p v-if="importError" class="mb-3 text-xs text-danger">{{ importError }}</p>
 
